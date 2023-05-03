@@ -237,7 +237,7 @@ colophon > a {
 colophon > a::before { content: ''; }
 colophon > a::after { content: ''; }
 @page:first {
-    @bottom-left {
+    @bottom-right {
         content: element(footer);
     }
 }
