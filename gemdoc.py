@@ -110,13 +110,14 @@ def parse_gemini(doc: str) -> tuple[str,dict]:
         i += 1
     colophon = ''
     if metadata.get('author'):
-        colophon += metadata['author']
+        colophon += '<author>{}</author>'.format(metadata['author'])
     if metadata.get('date'):
-        if colophon: colophon += ', '
-        colophon += metadata['date']
+        if colophon: colophon += '<datesep>, </datesep>'
+        colophon += '<date>{}</date>'.format(metadata['date'])
     if metadata.get('url'):
-        if colophon: colophon += '<br />'
-        colophon += '<a href={url}>{url}</a>'.format(url=metadata['url'])
+        if colophon: colophon += '<urlsep><br /></urlsep>'
+        colophon += '<url><a href={url}>{url}</a></url>' \
+                                                .format(url=metadata['url'])
     return ('<html><head>\n'
            f'<colophon>{colophon}</colophon>\n'
             '</head><body>\n'
@@ -222,25 +223,62 @@ pre {
     margin: 0;
 }
 
-/*** Page footer with additional information ***/
+/*** Colophon with additional information ***/
 
 colophon {
-    color: #5c6166;
     font-size: 10pt;
+    color: #5c6166;
+}
+colophon > url > a {
+    /* Undo default link styling in colophon */
+    font-size: 10pt;
+    color: #5c6166;
+}
+colophon > url > a::before { content: ''; }
+colophon > url > a::after { content: ''; }
+
+/*** Move the colophon into the page footer ***/
+
+/* Note that a simpler but less customizable example for moving
+   the colophon into the page footer is provided below */
+
+colophon > author  { position: running(author);  }
+colophon > datesep { position: running(datesep); }
+colophon > date    { position: running(date);    }
+colophon > urlsep  { position: running(urlsep);  }
+colophon > url     { position: running(url);     }
+@page:first {
+    @bottom-right {
+        content: element(author)
+                 element(datesep)   /* The string ', ' if both author
+                                       and date are specified. If either
+                                       author or date are missing, this
+                                       element is missing as well. */
+                 element(date)
+                 element(urlsep)    /* A single <br /> tag if either author
+                                       or date are specified and if the url
+                                       is specified as well. If the url is
+                                       missing or if both author and date
+                                       are missing, this element is missing
+                                       as well. */
+                 element(url)   ;
+    }
+}
+
+/* If you want to use the default footer layout, you can also use
+   the following code instead of the more involved example provided
+   above. Make sure to remove the example above if you uncomment the
+   one below. */
+/*
+colophon {
     position: running(footer);
 }
-colophon > a {
-    /* Undo default link styling in page footer */
-    color: #5c6166;
-    font-size: 10pt;
-}
-colophon > a::before { content: ''; }
-colophon > a::after { content: ''; }
 @page:first {
     @bottom-right {
         content: element(footer);
     }
 }
+*/
 
 """
 
