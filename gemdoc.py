@@ -34,6 +34,8 @@ def retrieve_url(url: str, max_redirects=10) -> tuple[str,str]:
                 raise GemdocClientException('Server response too long')
             header, rest = response.split(b'\r\n', maxsplit=1)
             header = header.decode('utf-8')
+            if not header[:2].isnumeric():
+                raise GemdocClientException('Invalid response from server')
             if header.startswith('3'):
                 dest = header[3:]
                 print(f"Following redirect to '{dest}'", file=sys.stderr)
