@@ -2,6 +2,7 @@
 
 import sys
 from weasyprint import HTML, CSS
+from urllib.parse import urlparse, urljoin
 from html import escape as html_escape
 
 class GemdocParserException(Exception):
@@ -47,7 +48,7 @@ def parse_magic_lines(doc: str) -> tuple[str,dict]:
             body.append(line)
     return '\n'.join(body), metadata
 
-def parse_gemini(doc: str, metadata: dict) -> str:
+def parse_gemini(doc: str, metadata: dict) -> tuple[str,str]:
     body = list(); got_title = False; preformatted = False
     def add(line, tag='p', css_class=None) -> None:
         if tag and css_class:
@@ -96,22 +97,23 @@ def parse_gemini(doc: str, metadata: dict) -> str:
             i -= 1; body.append('</ul>')
         elif doc[i].startswith('=>'):
             link, *label = doc[i][2:].lstrip().split(maxsplit=1)
-            label = label[0] if label else link
-            #
-            # TODO: Use the document's url to convert all relative links
-            # into absolute links. Since we don't know where the pdf will
-            # end up --- because most people assume pdfs are portable,
-            # so they will just move them around --- this seems like the
-            # appropriate thing to do. It should also help with making
-            # the scheme detection on the next line more robust.
-            #
-            # TODO: Add some sanitisation code here. I might end up
-            # processing remote content with this function, and this
-            # (i. e. link and scheme) is the only part of my generated
-            # html that is not run through html_escape.
-            #
-            css_class, _ = link.split(':', maxsplit=1)
-            if link == label: css_class += ' _nolabel'
+            if 'url' not in metadata and link.startswith('//'):
+                link = 'gemini:' + link
+                doc[i] = f'=> {link}{"  " if label else ""}{label}'
+            scheme, *_= urlparse(link)
+            if 'url' in metadata and not scheme:
+                base = metadata['url']
+                if base.startswith('gemini://'):
+                    # Work around missing IANA registration of gemini://
+                    link = 'gemini:' + urljoin(base[7:], link)
+                else:
+                    link = urljoin(metadata['url'], link)
+                scheme, *_= urlparse(link)
+                doc[i] = f'=> {link}{"  " if label else ""}{label}'
+            css_class = scheme
+            label = label[0] if label else html_escape(link)
+            if link == label:
+                css_class += (' ' if css_class else '') + '_nolabel'
             body.append(f'<p><a href="{link}" class="{css_class}">'
                         f'{html_escape(label)}</a></p>')
         elif not doc[i].strip():
@@ -129,11 +131,13 @@ def parse_gemini(doc: str, metadata: dict) -> str:
         if colophon: colophon += '<urlsep><br /></urlsep>'
         colophon += '<url><a href={url}>{url}</a></url>' \
                                                 .format(url=metadata['url'])
-    return ('<html><head>\n'
+    gemini = '\n'.join(doc)
+    html = ('<html><head>\n'
            f'<colophon>{colophon}</colophon>\n'
             '</head><body>\n'
             ''+'\n'.join(body)+'\n'
             '</body></html>')
+    return gemini, html
 
 _default_css = """
 /* This style is based on Ayu Light from the amfora contrib/themes
@@ -299,7 +303,7 @@ if __name__ == "__main__":
     if is_gemdoc_pdf(doc):
         doc = extract_gemini_part(doc)
     doc, metadata = parse_magic_lines(doc)
-    doc = parse_gemini(doc, metadata)
-    html = HTML(string=doc)
+    gemini, html = parse_gemini(doc, metadata)
+    html = HTML(string=html)
     css = CSS(string=_default_css)
     html.write_pdf(sys.stdout.buffer, stylesheets=[css])
