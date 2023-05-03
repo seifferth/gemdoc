@@ -29,7 +29,7 @@ def retrieve_url(url: str, max_redirects=10) -> tuple[str,str]:
     with socket.create_connection((host, int(port))) as sock:
         with context.wrap_socket(sock) as ssock:
             ssock.send(f'{url}\r\n'.encode('utf-8'))
-            response = ssock.recv(1024)
+            response = ssock.recv(1029)
             if b'\r\n' not in response:
                 raise GemdocClientException('Server response too long')
             header, rest = response.split(b'\r\n', maxsplit=1)
