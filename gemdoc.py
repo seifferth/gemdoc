@@ -54,6 +54,7 @@ def parse_gemini(doc: str) -> tuple[str,dict]:
         elif doc[i].startswith('%!GEMDOC'):
             key, value = doc[i][8:].lstrip().split('=', maxsplit=1)
             key, value = key.strip(), value.strip()
+            if key == 'uri': key = 'url'
             if key not in ['author', 'date', 'url', 'subject', 'keywords']:
                 raise GemdocParserException(f"Unsupported gemdoc key '{key}'")
             metadata[key] = value
