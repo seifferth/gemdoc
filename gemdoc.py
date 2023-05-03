@@ -1,9 +1,57 @@
 #!/usr/bin/env python3
 
 import sys
+import socket, ssl
 from weasyprint import HTML, CSS
 from urllib.parse import urlparse, urljoin
 from html import escape as html_escape
+
+
+class GemdocClientException(Exception):
+    pass
+
+def retrieve_url(url: str, max_redirects=10) -> tuple[str,str]:
+    """
+    Returns a tuple of type (url, content), where url is possibly
+    different from the one supplied as an argument if there have been
+    any redirects.
+    """
+    if max_redirects <= 0:
+        raise GemdocClientException('Maximum number of redirects exceeded')
+    scheme, host, *_ = urlparse(url); port = 1965
+    content = list()
+    if scheme != 'gemini':
+        raise GemdocClientException(f'Unsupported url scheme {scheme}')
+    if ':' in host: host, port = host.rsplit(':', maxsplit=1)
+    context = ssl.create_default_context()
+    context.check_hostname = False
+    context.verify_mode = ssl.CERT_NONE
+    with socket.create_connection((host, int(port))) as sock:
+        with context.wrap_socket(sock) as ssock:
+            ssock.send(f'{url}\r\n'.encode('utf-8'))
+            response = ssock.recv(1024)
+            if b'\r\n' not in response:
+                raise GemdocClientException('Server response too long')
+            header, rest = response.split(b'\r\n', maxsplit=1)
+            header = header.decode('utf-8')
+            if header.startswith('3'):
+                dest = header[3:]
+                print(f"Following redirect to '{dest}'", file=sys.stderr)
+                return retrieve_url(dest, max_redirects=max_redirects-1)
+            elif header.startswith('2'):
+                mimetype, *_ = header[3:].split(';')
+                if mimetype not in ['text/gemini', 'application/pdf']:
+                    raise GemdocClientException(
+                                    f"Unsupported mime type '{mimetype}'")
+                doc = [rest]
+                while True:
+                    next = ssock.recv(1024)
+                    if not next: break
+                    doc.append(next)
+                return url, b''.join(doc).decode('utf-8')
+            else:
+                raise GemdocClientException(f"Server replied: '{header}'")
+
 
 class GemdocParserException(Exception):
     pass
@@ -299,10 +347,14 @@ colophon {
 """.strip()
 
 if __name__ == "__main__":
-    doc = sys.stdin.read()
+    #doc = sys.stdin.read()
+    #doc, metadata = parse_magic_lines(doc)
+    url = sys.argv[1]
+    metadata = dict()
+    url, doc = retrieve_url(url)
+    metadata['url'] = url
     if is_gemdoc_pdf(doc):
         doc = extract_gemini_part(doc)
-    doc, metadata = parse_magic_lines(doc)
     gemini, html = parse_gemini(doc, metadata)
     html = HTML(string=html)
     css = CSS(string=_default_css)
