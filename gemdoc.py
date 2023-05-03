@@ -88,7 +88,9 @@ def parse_gemini(doc: str) -> tuple[str,dict]:
                 i += 1
             i -= 1; body.append('</ul>')
         elif doc[i].startswith('=>'):
-            link, label = doc[i][2:].lstrip().split(maxsplit=1)
+            link, *label = doc[i][2:].lstrip().split(maxsplit=1)
+            label = label[0] if label else link
+            #
             # TODO: Use the document's url to convert all relative links
             # into absolute links. Since we don't know where the pdf will
             # end up --- because most people assume pdfs are portable,
