@@ -242,16 +242,19 @@ a.mailto {
 h1 {
     color: #fa8d3e;
     margin: 0;
+    text-align: left;
 }
 h1::before { content: '# '; }
 h2 {
     color: #f2ae49;
     margin: 0;
+    text-align: left;
 }
 h2::before { content: '## '; }
 h3 {
     color: #f2ae49;
     margin: 0;
+    text-align: left;
 }
 h3::before { content: '### '; }
 
