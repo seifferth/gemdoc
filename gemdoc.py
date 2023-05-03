@@ -103,8 +103,9 @@ def parse_gemini(doc: str) -> tuple[str,dict]:
             # (i. e. link and scheme) is the only part of my generated
             # html that is not run through html_escape.
             #
-            scheme, _ = link.split(':', maxsplit=1)
-            body.append(f'<p><a href="{link}" class="{scheme}">'
+            css_class, _ = link.split(':', maxsplit=1)
+            if link == label: css_class += ' _nolabel'
+            body.append(f'<p><a href="{link}" class="{css_class}">'
                         f'{html_escape(label)}</a></p>')
         elif not doc[i].strip():
             body.append('<br />')
@@ -161,6 +162,8 @@ a::after {
     /* Insert the url in brackets after the link label */
     content: ' ('attr(href)')';
 }
+a._nolabel::before { content: ''; }
+a._nolabel::after { content: ''; }
 a.gemini {
     /* Styling for links to gemini:// urls */
     color: #399ee6;
