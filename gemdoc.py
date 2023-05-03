@@ -157,7 +157,7 @@ a {
     text-decoration: none;
     color: #a37acc;
 }
-a::after{
+a::after {
     /* Insert the url in brackets after the link label */
     content: ' ('attr(href)')';
 }
