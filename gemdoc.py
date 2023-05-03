@@ -120,7 +120,7 @@ _default_css = """
 /*** Text ***/
 body {
     /* General settings such as the main font to use */
-    font-family: sans serif;
+    font-family: DejaVu Sans, sans serif;
     text-align: justify;
 }
 p {
@@ -207,6 +207,7 @@ blockquote {
 /*** Preformatted text ***/
 
 pre {
+    font-family: DejaVu Sans Mono, monospace;
     color: #86b300;
     margin: 0;
 }
