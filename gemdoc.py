@@ -32,9 +32,23 @@ def extract_gemini_part(doc: str) -> str:
     if doc.endswith('\n'): doc = doc[:-1]
     return doc
 
-def parse_gemini(doc: str) -> tuple[str,dict]:
+def parse_magic_lines(doc: str) -> tuple[str,dict]:
     metadata = dict(); body = list()
-    got_title = False; preformatted = False
+    for line in doc.splitlines():
+        if line.startswith('%!GEMDOC'):
+            key, *value = line[8:].lstrip().split('=', maxsplit=1)
+            if not value or not value[0].strip(): continue
+            key, value = key.strip().lower(), value[0].strip()
+            if key == 'uri': key = 'url'
+            if key not in ['author', 'date', 'url', 'subject', 'keywords']:
+                raise GemdocParserException(f"Unsupported gemdoc key '{key}'")
+            metadata[key] = value
+        else:
+            body.append(line)
+    return '\n'.join(body), metadata
+
+def parse_gemini(doc: str, metadata: dict) -> str:
+    body = list(); got_title = False; preformatted = False
     def add(line, tag='p', css_class=None) -> None:
         if tag and css_class:
             body.append(f'<{tag} class="{css_class}">'
@@ -51,13 +65,6 @@ def parse_gemini(doc: str) -> tuple[str,dict]:
             add(doc[i], tag=None)
         elif doc[i].startswith('```'):
             body.append('<pre>'); preformatted = True
-        elif doc[i].startswith('%!GEMDOC'):
-            key, value = doc[i][8:].lstrip().split('=', maxsplit=1)
-            key, value = key.strip().lower(), value.strip()
-            if key == 'uri': key = 'url'
-            if key not in ['author', 'date', 'url', 'subject', 'keywords']:
-                raise GemdocParserException(f"Unsupported gemdoc key '{key}'")
-            metadata[key] = value
         elif doc[i].startswith('# '):
             if not got_title:
                 got_title = True; title = doc[i][2:].strip()
@@ -126,7 +133,7 @@ def parse_gemini(doc: str) -> tuple[str,dict]:
            f'<colophon>{colophon}</colophon>\n'
             '</head><body>\n'
             ''+'\n'.join(body)+'\n'
-            '</body></html>', metadata)
+            '</body></html>')
 
 _default_css = """
 /* This style is based on Ayu Light from the amfora contrib/themes
@@ -288,10 +295,11 @@ colophon {
 """.strip()
 
 if __name__ == "__main__":
-    indoc = sys.stdin.read()
-    if is_gemdoc_pdf(indoc):
-        indoc = extract_gemini_part(indoc)
-    doc, metadata = parse_gemini(indoc)
+    doc = sys.stdin.read()
+    if is_gemdoc_pdf(doc):
+        doc = extract_gemini_part(doc)
+    doc, metadata = parse_magic_lines(doc)
+    doc = parse_gemini(doc, metadata)
     html = HTML(string=doc)
     css = CSS(string=_default_css)
     html.write_pdf(sys.stdout.buffer, stylesheets=[css])
