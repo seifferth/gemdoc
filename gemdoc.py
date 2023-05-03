@@ -13,12 +13,13 @@ def is_gemdoc_pdf(doc: str) -> bool:
     a pdf file that does not contain a valid gemdoc signature on the second
     line.
     """
+    magic_line = '%♊\ufe0e🗎\ufe0e'
     if not doc.lstrip().startswith('%PDF-'):
         False
-    elif not doc.lstrip().splitlines()[1].startswith('%♊🗎'):
+    elif not doc.lstrip().splitlines()[1].startswith(magic_line):
         raise GemdocParserException(
-            "Received a pdf file but the gemdoc signature of '%♊🗎' "
-            'on the second line is missing.'
+            'Received a pdf file but the gemdoc signature of '
+           f"'{magic_line}' on the second line is missing."
         )
     else:
         return True
