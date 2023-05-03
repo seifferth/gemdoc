@@ -93,15 +93,15 @@ def parse_gemini(doc: str) -> tuple[str,dict]:
             # end up --- because most people assume pdfs are portable,
             # so they will just move them around --- this seems like the
             # appropriate thing to do. It should also help with making
-            # the protocol detection on the next line more robust.
+            # the scheme detection on the next line more robust.
             #
             # TODO: Add some sanitisation code here. I might end up
             # processing remote content with this function, and this
-            # (i. e. link and protocol) is the only part of my generated
+            # (i. e. link and scheme) is the only part of my generated
             # html that is not run through html_escape.
             #
-            protocol, _ = link.split(':', maxsplit=1)
-            body.append(f'<p><a href="{link}" class="{protocol}">'
+            scheme, _ = link.split(':', maxsplit=1)
+            body.append(f'<p><a href="{link}" class="{scheme}">'
                         f'{html_escape(label)}</a></p>')
         elif not doc[i].strip():
             body.append('<br />')
@@ -168,10 +168,10 @@ a.gopher {
 a.mailto {
     /* Styling for links to mailto: urls */
 }
-/* Note that these selectors work for any kind of protocol. There is no
-   need to define special rules for every protocol, though, since the
-   default style defined above will be applied to all urls with protocols
-   that aren't explicitly mentioned in the css file. */
+/* Note that these selectors work for any kind of url scheme. There is no
+   need to define special rules for every scheme, though, since the default
+   style defined above will be applied to all urls with schemes that aren't
+   explicitly mentioned in the css file. */
 
 /*** Headings ***/
 h1 {
