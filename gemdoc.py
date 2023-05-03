@@ -279,8 +279,7 @@ colophon {
     }
 }
 */
-
-"""
+""".strip()
 
 if __name__ == "__main__":
     indoc = sys.stdin.read()
