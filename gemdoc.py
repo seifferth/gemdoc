@@ -108,8 +108,17 @@ def parse_gemini(doc: str) -> tuple[str,dict]:
         else:
             add(doc[i])
         i += 1
+    colophon = ''
+    if metadata.get('author'):
+        colophon += metadata['author']
+    if metadata.get('date'):
+        if colophon: colophon += ', '
+        colophon += metadata['date']
+    if metadata.get('url'):
+        if colophon: colophon += '<br />'
+        colophon += '<a href={url}>{url}</a>'.format(url=metadata['url'])
     return ('<html><head>\n'
-            '<colophon>Hello World (should be a link or something)</colophon>\n'
+           f'<colophon>{colophon}</colophon>\n'
             '</head><body>\n'
             ''+'\n'.join(body)+'\n'
             '</body></html>', metadata)
@@ -220,6 +229,13 @@ colophon {
     font-size: 10pt;
     position: running(footer);
 }
+colophon > a {
+    /* Undo default link styling in page footer */
+    color: #5c6166;
+    font-size: 10pt;
+}
+colophon > a::before { content: ''; }
+colophon > a::after { content: ''; }
 @page:first {
     @bottom-left {
         content: element(footer);
