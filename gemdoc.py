@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import re
 import socket, ssl
 from weasyprint import HTML, CSS
 from urllib.parse import urlparse, urljoin
@@ -88,7 +89,7 @@ def parse_magic_lines(doc: str) -> tuple[str,dict]:
     for line in doc.splitlines():
         if line.startswith('%!GEMDOC'):
             key, *value = line[8:].lstrip().split('=', maxsplit=1)
-            if not value or not value[0].strip(): continue
+            if not value: value.append('')
             key, value = key.strip().lower(), value[0].strip()
             if key == 'uri': key = 'url'
             if key not in ['author', 'date', 'url', 'subject', 'keywords']:
@@ -171,6 +172,21 @@ def parse_gemini(doc: str, metadata: dict) -> tuple[str,str]:
         else:
             add(doc[i])
         i += 1
+    # Try to automatically extract author and date from url if they are
+    # missing from metadata
+    if 'url' in metadata and metadata['url'] and \
+                ('author' not in metadata or 'date' not in metadata):
+        _scheme, _netloc, path, *_ = urlparse(metadata['url'])
+        if 'author' not in metadata and path.startswith('/~'):
+            metadata['author'] = path[2:].split('/')[0]
+        if 'date' not in metadata:
+            possible_date = re.match(
+                r'^([0-9]{4})[-/]?([0-9]{2})[-/]?([0-9]{2})([^0-9].*)$',
+                path.split('/')[-1]
+            )
+            if possible_date:
+                yyyy, mm, dd, _ = possible_date.groups()
+                metadata['date'] = f'{yyyy}-{mm}-{dd}'
     colophon = ''
     if metadata.get('author'):
         colophon += '<author>{}</author>'.format(metadata['author'])
