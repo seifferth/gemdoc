@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
 
-import sys
+import sys, os
 import re
 import socket, ssl
+from typing import Union
+from io import BytesIO
 from weasyprint import HTML, CSS
 from urllib.parse import urlparse, urljoin
 from html import escape as html_escape
+from mimetypes import guess_extension
+from getopt import gnu_getopt as getopt
 
 
 class GemdocClientException(Exception):
     pass
 
-def retrieve_url(url: str, max_redirects=10) -> tuple[str,str]:
+def retrieve_url(url: str, max_redirects=10) -> tuple[str,str,Union[str,bytes]]:
     """
     Returns a tuple of type (url, content), where url is possibly
     different from the one supplied as an argument if there have been
@@ -42,16 +46,21 @@ def retrieve_url(url: str, max_redirects=10) -> tuple[str,str]:
                 print(f"Following redirect to '{dest}'", file=sys.stderr)
                 return retrieve_url(dest, max_redirects=max_redirects-1)
             elif header.startswith('2'):
-                mimetype, *_ = header[3:].split(';')
-                if mimetype not in ['text/gemini', 'application/pdf']:
-                    raise GemdocClientException(
-                                    f"Unsupported mime type '{mimetype}'")
+                mime_type, *params = header[3:].split(';')
+                mime_type = mime_type.strip().lower()
+                charset = 'utf-8'
+                for p in params:
+                    k, *v = p.strip().split('=', maxsplit=1)
+                    k, v = k.strip().lower(), v[0].strip() if v else ''
+                    if k == 'charset': charset = v
                 doc = [rest]
                 while True:
                     next = ssock.recv(1024)
                     if not next: break
                     doc.append(next)
-                return url, b''.join(doc).decode('utf-8')
+                doc = b''.join(doc)
+                if mime_type.startswith('text/'): doc = doc.decode(charset)
+                return url, mime_type, doc
             else:
                 raise GemdocClientException(f"Server replied: '{header}'")
 
@@ -367,16 +376,96 @@ colophon {
 */
 """.strip()
 
+_cli_help = """
+Usage: gemdoc [OPTION]... FILE
+
+Options
+  -o FILE, --output=FILE    Write output to FILE rather than to stdout.
+  -M K=V, --metadata=K=V    Set the metadata key K to value V. Valid keys
+                            are 'author', 'date', 'url', 'subject' and
+                            'keywords'. This option may be passed multiple
+                            times to set more than one key.
+  -h, --help                Print this help message and exit.
+""".lstrip()
+
 if __name__ == "__main__":
-    #doc = sys.stdin.read()
-    #doc, metadata = parse_magic_lines(doc)
-    url = sys.argv[1]
-    metadata = dict()
-    url, doc = retrieve_url(url)
-    metadata['url'] = url
-    if is_gemdoc_pdf(doc):
-        doc = extract_gemini_part(doc)
+    opts, args = getopt(sys.argv[1:], 'ho:M:',
+                        ['--help', '--output=', '--metadata='])
+    output = '-'; metadata = dict(); input_type = None
+    for k, v in opts:
+        if k in ['-h', '--help']:
+            print(_cli_help); exit(0)
+        elif k in ['-o', '--output']:
+            output = v
+        elif k in ['-M', '--metadata']:
+            m_key, m_value = v.split(v, '=', maxsplit=1) if '=' in v \
+                             else v.split(v, ':', maxsplit=1) if ':' in v \
+                             else (v, '')
+            m_key, m_value = m_key.strip(), m_value.strip()
+            metadata[m_key] = m_value
+    if len(args) != 1:
+        print('Gemdoc takes exactly one positional argument but got '
+             f'{len(args)}. To force reading data from stdin, specify '
+              'a single dash \'-\' as the input file.', file=sys.stderr)
+        exit(1)
+    elif args[0] == '-':
+        doc = sys.stdin.read(); input_type = 'local'
+    elif not args[0].startswith('gemini://') and os.path.isfile(args[0]):
+        with open(args[0]) as f:
+            doc = f.read(); input_type = 'local'
+    elif args[0].startswith('gemini://') or \
+         re.match(r'^(//)?[^/\.]+\.[^/\.]+', args[0]):
+        if args[0].startswith('//'): args[0] = 'gemini:'+args[0]
+        if not args[0].startswith('gemini://'): args[0] = 'gemini://'+args[0]
+        url, mime_type, doc = retrieve_url(args[0]); input_type = 'remote'
+        if 'url' not in metadata: metadata['url'] = url
+    else:
+        print(f"'{args[0]}' does not seem to be a gemini url and there is "
+               'no such file on the local system either.', file=sys.stderr)
+        exit(1)
+
+    def write_output(doc: Union[str,bytes]):
+        if output == '-':
+            if type(doc) == str:
+                sys.stdout.write(doc)
+            elif type(doc) == bytes:
+                sys.stdout.buffer.write(doc)
+            else:
+                raise Exception(f'Invalid type {type(doc)}')
+        else:
+            if type(doc) == str:
+                with open(output, 'w') as f:
+                    f.write(doc)
+            elif type(doc) == bytes:
+                with open(output, 'wb') as f:
+                    f.write(doc)
+            else:
+                raise Exception(f'Invalid type {type(doc)}')
+
+    if input_type == 'local':
+        if is_gemdoc_pdf(doc): doc = extract_gemini_part(doc)
+        doc, new_metadata = parse_magic_lines(doc)
+        for k, v in new_metadata:
+            if k not in metadata: metadata[k] = v
+
+    elif input_type == 'remote':
+        if mime_type.lower() in ['text/gemini', 'application/pdf'] \
+                             and is_gemdoc_pdf(doc):
+            write_output(doc)
+            exit(0)
+        elif mime_type.lower() == 'text/gemini':
+            pass
+        else:
+            if not re.match(r'[^\.]\.[^\.]+$', output):
+                output += guess_extension(mime_type, strict=False) or ''
+            print(f'Writing non pdf file to {output}. The file\'s mime type '
+                  f'was reported to be \'{mime_type}\'', file=sys.stderr)
+            write_output(doc)
+            exit(0)
+
     gemini, html = parse_gemini(doc, metadata)
     html = HTML(string=html)
     css = CSS(string=_default_css)
-    html.write_pdf(sys.stdout.buffer, stylesheets=[css])
+    pdf = BytesIO()
+    html.write_pdf(pdf, stylesheets=[css])
+    pdf.seek(0); write_output(pdf.read())
