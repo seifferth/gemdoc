@@ -390,7 +390,7 @@ Options
 
 if __name__ == "__main__":
     opts, args = getopt(sys.argv[1:], 'ho:M:',
-                        ['--help', '--output=', '--metadata='])
+                        ['help', 'output=', 'metadata='])
     output = '-'; metadata = dict(); input_type = None
     for k, v in opts:
         if k in ['-h', '--help']:
