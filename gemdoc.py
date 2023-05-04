@@ -374,7 +374,7 @@ colophon {
     }
 }
 */
-""".strip()
+""".lstrip()
 
 _cli_help = """
 Usage: gemdoc [OPTION]... FILE
@@ -385,13 +385,17 @@ Options
                             are 'author', 'date', 'url', 'subject' and
                             'keywords'. This option may be passed multiple
                             times to set more than one key.
+  --print-default-css       Print the default css style to stdout or to
+                            the file specified via --output.
   -h, --help                Print this help message and exit.
 """.lstrip()
 
 if __name__ == "__main__":
     opts, args = getopt(sys.argv[1:], 'ho:M:',
-                        ['help', 'output=', 'metadata='])
+                        ['help', 'output=', 'metadata=',
+                         'print-default-css'])
     output = '-'; metadata = dict(); input_type = None
+    print_default_css = False
     for k, v in opts:
         if k in ['-h', '--help']:
             print(_cli_help); exit(0)
@@ -403,7 +407,34 @@ if __name__ == "__main__":
                              else (v, '')
             m_key, m_value = m_key.strip(), m_value.strip()
             metadata[m_key] = m_value
-    if len(args) != 1:
+        elif k == '--print-default-css':
+            if args:
+                print('The --print-default-css option cannot be combined '
+                      'with positional arguments', file=sys.stderr)
+                exit(1)
+            print_default_css = True
+
+    def write_output(doc: Union[str,bytes]):
+        if output == '-':
+            if type(doc) == str:
+                sys.stdout.write(doc)
+            elif type(doc) == bytes:
+                sys.stdout.buffer.write(doc)
+            else:
+                raise Exception(f'Invalid type {type(doc)}')
+        else:
+            if type(doc) == str:
+                with open(output, 'w') as f:
+                    f.write(doc)
+            elif type(doc) == bytes:
+                with open(output, 'wb') as f:
+                    f.write(doc)
+            else:
+                raise Exception(f'Invalid type {type(doc)}')
+
+    if print_default_css:
+        write_output(_default_css); exit(0)
+    elif len(args) != 1:
         print('Gemdoc takes exactly one positional argument but got '
              f'{len(args)}. To force reading data from stdin, specify '
               'a single dash \'-\' as the input file.', file=sys.stderr)
@@ -423,24 +454,6 @@ if __name__ == "__main__":
         print(f"'{args[0]}' does not seem to be a gemini url and there is "
                'no such file on the local system either.', file=sys.stderr)
         exit(1)
-
-    def write_output(doc: Union[str,bytes]):
-        if output == '-':
-            if type(doc) == str:
-                sys.stdout.write(doc)
-            elif type(doc) == bytes:
-                sys.stdout.buffer.write(doc)
-            else:
-                raise Exception(f'Invalid type {type(doc)}')
-        else:
-            if type(doc) == str:
-                with open(output, 'w') as f:
-                    f.write(doc)
-            elif type(doc) == bytes:
-                with open(output, 'wb') as f:
-                    f.write(doc)
-            else:
-                raise Exception(f'Invalid type {type(doc)}')
 
     if input_type == 'local':
         if is_gemdoc_pdf(doc): doc = extract_gemini_part(doc)
