@@ -450,7 +450,7 @@ if __name__ == "__main__":
 
     elif input_type == 'remote':
         if mime_type.lower() in ['text/gemini', 'application/pdf'] \
-                             and is_gemdoc_pdf(doc):
+                             and doc.lstrip().startswith('%PDF-'):
             write_output(doc)
             exit(0)
         elif mime_type.lower() == 'text/gemini':
