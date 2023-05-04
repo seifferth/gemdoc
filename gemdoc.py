@@ -376,6 +376,7 @@ colophon {
 */
 """.lstrip()
 
+
 _cli_help = """
 Usage: gemdoc [OPTION]... FILE
 
