@@ -32,7 +32,7 @@ def retrieve_url(url: str, max_redirects=10) -> tuple[str,str,Union[str,bytes]]:
     context.check_hostname = False
     context.verify_mode = ssl.CERT_NONE
     with socket.create_connection((host, int(port))) as sock:
-        with context.wrap_socket(sock) as ssock:
+        with context.wrap_socket(sock, server_hostname=host) as ssock:
             ssock.send(f'{url}\r\n'.encode('utf-8'))
             response = ssock.recv(1029)
             if b'\r\n' not in response:
