@@ -35,6 +35,12 @@ def retrieve_url(url: str, max_redirects=10) -> tuple[str,str,Union[str,bytes]]:
         with context.wrap_socket(sock, server_hostname=host) as ssock:
             ssock.send(f'{url}\r\n'.encode('utf-8'))
             response = ssock.recv(1029)
+            # I am not entirely sure why the loop below is needed, but in
+            # some cases I only get the status code on the first recv, so
+            # I need to call recv multiple times to fetch the whole status
+            # line.
+            while len(response) < 1029:
+                response += ssock.recv(1029-len(response))
             if b'\r\n' not in response:
                 raise GemdocClientException('Server response too long')
             header, rest = response.split(b'\r\n', maxsplit=1)
