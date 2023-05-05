@@ -403,8 +403,8 @@ if __name__ == "__main__":
         elif k in ['-o', '--output']:
             output = v
         elif k in ['-M', '--metadata']:
-            m_key, m_value = v.split(v, '=', maxsplit=1) if '=' in v \
-                             else v.split(v, ':', maxsplit=1) if ':' in v \
+            m_key, m_value = v.split('=', maxsplit=1) if '=' in v \
+                             else v.split(':', maxsplit=1) if ':' in v \
                              else (v, '')
             m_key, m_value = m_key.strip(), m_value.strip()
             metadata[m_key] = m_value
