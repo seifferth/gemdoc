@@ -204,14 +204,15 @@ def parse_gemini(doc: str, metadata: dict) -> tuple[str,str]:
                 metadata['date'] = f'{yyyy}-{mm}-{dd}'
     colophon = ''
     if metadata.get('author'):
-        colophon += '<author>{}</author>'.format(metadata['author'])
+        colophon += '<author>{}</author>' \
+                                    .format(html_escape(metadata['author']))
     if metadata.get('date'):
         if colophon: colophon += '<datesep>, </datesep>'
-        colophon += '<date>{}</date>'.format(metadata['date'])
+        colophon += '<date>{}</date>'.format(html_escape(metadata['date']))
     if metadata.get('url'):
         if colophon: colophon += '<urlsep><br /></urlsep>'
-        colophon += '<url><a href={url}>{url}</a></url>' \
-                                                .format(url=metadata['url'])
+        colophon += '<url><a href={}>{}</a></url>' \
+                    .format(metadata['url'], html_escape(metadata['url']))
     gemini = '\n'.join(doc)
     html = ('<html><head>\n'
            f'<colophon>{colophon}</colophon>\n'
