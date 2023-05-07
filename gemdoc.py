@@ -394,17 +394,27 @@ Options
                             are 'author', 'date', 'url', 'subject' and
                             'keywords'. This option may be passed multiple
                             times to set more than one key.
-  --print-default-css       Print the default css style to stdout or to
+  --css FILE                Use the specified css stylesheet to style the
+                            document. This option may be passed multiple
+                            times to use multiple css files. User-specified
+                            stylesheets are always applied on top of the
+                            default stylesheet built into gemdoc itself.
+                            This provides a convenient way to only adjust
+                            parts of that stylesheet. If you want to not
+                            use the default stylesheet at all, make sure
+                            to override all the selectors present in that
+                            stylesheet.
+  --print-default-css       Print the default stylesheet to stdout or to
                             the file specified via --output.
   -h, --help                Print this help message and exit.
 """.lstrip()
 
 if __name__ == "__main__":
     opts, args = getopt(sys.argv[1:], 'ho:M:',
-                        ['help', 'output=', 'metadata=',
+                        ['help', 'output=', 'metadata=', 'css=',
                          'print-default-css'])
     output = '-'; metadata = dict(); input_type = None
-    print_default_css = False
+    print_default_css = False; stylesheets = list()
     for k, v in opts:
         if k in ['-h', '--help']:
             print(_cli_help); exit(0)
@@ -416,6 +426,8 @@ if __name__ == "__main__":
                              else (v, '')
             m_key, m_value = m_key.strip(), m_value.strip()
             metadata[m_key] = m_value
+        elif k == '--css':
+            stylesheets.append(v)
         elif k == '--print-default-css':
             if args:
                 print('The --print-default-css option cannot be combined '
@@ -464,6 +476,15 @@ if __name__ == "__main__":
                'no such file on the local system either.', file=sys.stderr)
         exit(1)
 
+    css = [CSS(string=_default_css)]
+    try:
+        for s in stylesheets:
+            with open(s) as f:
+                css.append(CSS(string=f.read()))
+    except Exception as e:
+        print(f'Unable to read css file. {e}', file=sys.stderr)
+        exit(1)
+
     if input_type == 'local':
         if is_gemdoc_pdf(doc): doc = extract_gemini_part(doc)
         doc, new_metadata = parse_magic_lines(doc)
@@ -487,7 +508,6 @@ if __name__ == "__main__":
 
     gemini, html = parse_gemini(doc, metadata)
     html = HTML(string=html)
-    css = CSS(string=_default_css)
     pdf = BytesIO()
-    html.write_pdf(pdf, stylesheets=[css])
+    html.write_pdf(pdf, stylesheets=css)
     pdf.seek(0); write_output(pdf.read())
