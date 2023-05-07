@@ -322,6 +322,7 @@ blockquote {
 pre {
     font-family: DejaVu Sans Mono, monospace;
     color: #86b300;
+    page-break-inside: avoid;
     margin: 0;
 }
 
