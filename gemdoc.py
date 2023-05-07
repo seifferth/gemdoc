@@ -157,7 +157,7 @@ def parse_gemini(doc: str, metadata: dict) -> tuple[str,str]:
             add(doc[i][1:], tag='blockquote')
         elif doc[i].startswith('* '):
             body.append('<ul>')
-            while doc[i].startswith('* '):
+            while i < len(doc) and doc[i].startswith('* '):
                 add(doc[i][2:], tag='li')
                 i += 1
             i -= 1; body.append('</ul>')
