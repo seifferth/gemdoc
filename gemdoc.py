@@ -5,7 +5,8 @@ import re
 import socket, ssl
 from typing import Union
 from io import BytesIO
-from weasyprint import HTML, CSS
+#from weasyprint import HTML, CSS       # moved below to improve performance
+                                        # if weasyprint is not used.
 from urllib.parse import urlparse, urljoin
 from html import escape as html_escape
 from mimetypes import guess_extension
@@ -476,6 +477,7 @@ if __name__ == "__main__":
                'no such file on the local system either.', file=sys.stderr)
         exit(1)
 
+    from weasyprint import HTML, CSS
     css = [CSS(string=_default_css)]
     try:
         for s in stylesheets:
