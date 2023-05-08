@@ -307,10 +307,11 @@ class GemdocPDF():
         if self._gemini != None:
             result = f'%PDF-1.6\n{magic_line}\n```\n```\r'.encode('utf-8')
             xref[self._gemini_objnum] = len(result)
+            gemini_length = len(self._gemini.encode('utf-8'))
             result += (f'{self._gemini_objnum} 0 obj\r'
                         '<</Type/EmbeddedFile/Params'
-                            f'<</Size {len(self._gemini)}>>'
-                         f'/Length {len(self._gemini)}>>\rstream\n'
+                            f'<</Size {gemini_length+1}>>'
+                         f'/Length {gemini_length+1}>>\rstream\n'
                        f'{self._gemini}\n\nendstream\nendobj\n') \
                                                             .encode('utf-8')
         else:
