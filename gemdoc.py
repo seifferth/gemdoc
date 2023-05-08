@@ -851,8 +851,16 @@ if __name__ == "__main__":
             # is updated. If this function should not be idempotent,
             # calling it twice early on should help me spot errors
             # earlier in the process.
+            if v != metadata[k]:
+                print(f'Warning: Non-ascii characters in the url field have '
+                       'been escaped by percent-encoding them',
+                      file=sys.stderr)
         else:
             v = ''.join((c if c.isascii() else '_' for c in v))
+            if v != metadata[k]:
+                print(f'Warning: Non-unicode characters in the {k} field '
+                       'have been replaced with underscores',
+                      file=sys.stderr)
         _ = v.encode('ascii') # Raise exception if encoding as ascii fails
         metadata[k] = v
     gemini_filename = 'source.gmi'
@@ -864,6 +872,9 @@ if __name__ == "__main__":
                 gemini_filename = urlunquote(gemini_filename)
                 gemini_filename = ''.join((c if c.isascii() else '_'
                                              for c in gemini_filename))
+                print(f'Warning: Non-unicode characters in the filename '
+                       'for the embedded source file have been replaced '
+                       'with underscores', file=sys.stderr)
                 _ = gemini_filename.encode('ascii')
             if not re.match(r'[^\.]\.[^\.]', gemini_filename):
                 gemini_filename = gemini_filename+'.gmi'
