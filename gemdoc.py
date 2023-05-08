@@ -879,6 +879,17 @@ if __name__ == "__main__":
             if not re.match(r'[^\.]\.[^\.]', gemini_filename):
                 gemini_filename = gemini_filename+'.gmi'
 
+    if 'endstream' in doc:
+        doc = doc.replace('endstream', 'e\u200bndstream')
+        print('Warning: Occurrences of the \'endstream\' keyword have been '
+              'escaped by inserting a zero width space after the first '
+              'character', file=sys.stderr)
+    if 'endobj' in doc:
+        doc = doc.replace('endobj', 'e\u200bndobj')
+        print('Warning: Occurrences of the \'endobj\' keyword have been '
+              'escaped by inserting a zero width space after the first '
+              'character', file=sys.stderr)
+
     gemini, html = parse_gemini(doc, metadata)
     html = HTML(string=html)
     pdf = BytesIO()
