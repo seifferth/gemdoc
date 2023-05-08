@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import sys, os
-import re
+import re, base64
 import socket, ssl
 from typing import Union
 from io import BytesIO
@@ -11,6 +11,9 @@ from urllib.parse import urlparse, urljoin
 from html import escape as html_escape
 from mimetypes import guess_extension
 from getopt import gnu_getopt as getopt
+
+
+magic_line = '%♊\ufe0e🗎\ufe0e'
 
 
 class GemdocClientException(Exception):
@@ -72,6 +75,180 @@ def retrieve_url(url: str, max_redirects=10) -> tuple[str,str,Union[str,bytes]]:
                 raise GemdocClientException(f"Server replied: '{header}'")
 
 
+def _consume_whitespace(binary: bytes) -> bytes:
+    m = re.search(rb'[^\s]', binary)
+    if m: return binary[m.start():]
+    return binary
+def _consume_objnum(binary: bytes) -> tuple[bytes,bytes]:
+    binary = _consume_whitespace(binary)
+    m = re.match(rb'^(\d+)\s+(\d+)\s+obj[\s]+', binary)
+    if not m:
+        raise Exception('No object at the start of '+str(binary[:10]))
+    objnum = '{} {} obj'.format(*[x.decode('ascii') for x in m.groups()])
+    return binary[m.end():], objnum.encode('ascii')
+def _consume_list(binary: bytes, delim=(b'[',b']')) -> tuple[bytes,dict]:
+    binary = _consume_whitespace(binary)
+    if not binary.startswith(delim[0]):
+        raise Exception('Expected '+str(delim[0])+' at the start of '\
+                        +str(binary[:10]))
+    binary = binary[len(delim[0]):]
+    d = list()
+    while True:
+        binary = _consume_whitespace(binary)
+        if binary.startswith(b'%'):
+            # Strip all comments from within dictionaries
+            m = re.search(rb'[\r\n]', binary)
+            binary = b'' if not m else binary[m.start()+1:]
+        elif binary.startswith(b'/'):
+            end = re.search(rb'[\s\(\)<>\[\]{}/%]', binary[1:]).start()+1
+            key, binary = binary[:end], binary[end:]
+            d.append(key)
+        elif binary.startswith(b'('):
+            o, c = binary.find(b'(', 1), binary.find(b')', 1)
+            while 0 <= o < c:
+                o, c = binary.find(b'(', c+1), binary.find(b')', c+1)
+            end = c+1
+            key, binary = binary[:end], binary[end:]
+            d.append(key)
+        elif binary.startswith(b'['):
+            binary, l = _consume_list(binary)
+            d.append(l)
+        elif binary.startswith(b'<<'):
+            binary, key = _consume_dictionary(binary)
+            d.append(key)
+        elif binary.startswith(b'<'):
+            end = binary.index(b'>')+1
+            key, binary = binary[:end], binary[end:]
+            d.append(key)
+        elif re.match(b'^\d+\s+\d+\s+R', binary):
+            end = binary.index(b'R')+1
+            key, binary = binary[:end], binary[end:]
+            d.append(key)
+        elif re.match(b'^[\d-]', binary):
+            end = re.search(rb'[^\d\.-]', binary).start()
+            key, binary = binary[:end], binary[end:]
+            d.append(key)
+        elif binary.startswith(b'null'):
+            d.append(b'null'); binary = binary[4:]
+        elif binary.startswith(b'true'):
+            d.append(b'true'); binary = binary[4:]
+        elif binary.startswith(b'false'):
+            d.append(b'false'); binary = binary[5:]
+        elif binary.startswith(delim[1]):
+            binary = binary[len(delim[1]):]
+            break
+        else:
+            raise Exception('Unknown list item at '+str(binary[:10]))
+    return binary, d
+def _consume_dictionary(binary: bytes) -> tuple[bytes,dict]:
+    binary, l = _consume_list(binary, delim=(b'<<',b'>>'))
+    d = dict()
+    while l:
+        if len(l) < 2:
+            raise Exception(f'Non-matched last object in dictionary: {l}')
+        k, v = l.pop(0), l.pop(0); d[k] = v
+    return binary, d
+def _serialize_list(l: list, delim=(b'[',b']')) -> bytes:
+    for i in range(len(l)):
+        if type(l[i]) == dict:
+            l[i] = _serialize_dictionary(l[i])
+        elif type(l[i]) == list:
+            l[i] = _serialize_list(l[i])
+        elif re.match(b'^[\d-]', l[i]) \
+             or l[i] in [b'null', b'true', b'false']:
+            l[i] = b' '+l[i]
+    result = b''.join(l)
+    if delim[0] in [b'[', b'<<']: result = result.lstrip(b' ')
+    if delim[1] in [b']', b'>>']: result = result.rstrip(b' ')
+    return delim[0]+result+delim[1]
+def _serialize_dictionary(dictionary: dict) -> bytes:
+    items = list()
+    for k, v in dictionary.items():
+        v = _serialize_list([v], delim=(b'',b''))
+        items.extend([k, v])
+    return b'<<'+b''.join(items)+b'>>'
+def _filter_object(binary: bytes) -> bytes:
+    binary, objnum = _consume_objnum(binary)
+    if binary.startswith(b'<<'):
+        binary, dictionary = _consume_dictionary(binary)
+    else:
+        dictionary = dict()
+    binary = _consume_whitespace(binary)
+    if binary.startswith(b'stream\n'):
+        stream = True; endstream = binary.find(b'endstream')
+        if endstream == -1: raise Exception('Missing endstream keyword')
+        binary = binary[len(b'stream\n'):endstream]
+    else:
+        stream = False; endobj = binary.find(b'endobj')
+        if endobj == -1: raise Exception('Missing endobj keyword')
+        binary = binary[:endobj]
+    flist = dictionary.get(b'/Filter', [])
+    if type(flist) == bytes: flist = [flist]
+    if stream:
+        binary = base64.a85encode(binary)+b'~>'
+        flist.insert(0, b'/ASCII85Decode')
+    dictionary[b'/Filter'] = flist[0] if len(flist) == 1 else flist
+    if b'/Length' in dictionary:
+        dictionary[b'/Length'] = str(len(binary)).encode('ascii')
+    binary = objnum + b'\n' + \
+             (_serialize_dictionary(dictionary) if dictionary else b'') + \
+             (b'\nstream\n'+binary+b'\nendstream' if stream else binary)
+    if not binary.endswith(b'\n'): binary += b'\n'
+    binary += b'endobj\n'
+    return binary
+def _discard_pre_obj(binary: bytes) -> tuple[bytes,bytes]:
+    m = re.search(rb'\d+\s+\d+\s+o', binary)
+    if not m: return b''
+    return binary[m.start():]
+def _consume_obj(binary: bytes) -> tuple[int,bytes,bytes]:
+    m = re.match(rb'\s*(\d+)\s+(\d+)\s+obj', binary)
+    main, sub = m.groups()
+    if sub != b'0':
+        raise Exception('Object revisions not implemented. Unable to parse '\
+                        +str(binary[:20]))
+    objnum = int(main.decode('ascii'))
+    endobj = binary.find(b'endobj')+len(b'endobj')
+    if endobj == -1: raise Exception('Missing endobj keyword')
+    return objnum, binary[:endobj]+b'\n', binary[endobj:]
+def _filter_pdf(gemini: str, binary: bytes) -> bytes:
+    xref = dict()
+    result = f'%PDF-1.6\n{magic_line}\n{gemini}\n\n\n'.encode('utf-8')
+    while binary:
+        if binary.startswith(b'\nxref'):
+            break
+        else:
+            binary = _discard_pre_obj(binary)
+            if not binary: break
+            objnum, obj, binary = _consume_obj(binary)
+            xref[objnum] = len(result)
+            obj = _filter_object(obj)
+            result += obj
+    s, e = binary.find(b'\ntrailer'), binary.find(b'\nstartxref')
+    if result[-1] != b'\n': result += b'\n'
+    trailer = binary[s+1:e]
+    if result[-1] != b'\n': result += b'\n'
+    startxref = len(result); result += b'xref\n'
+    result += b'0 1\n'
+    result += (10*'0'+' 65535 f\n').encode('ascii')
+    i = 1; max_i = max(xref.keys())+1; segment = list()
+    while i < max_i+1:  # Needs to be max_i+1 so the last segment gets flushed
+        if segment and i not in xref.keys():
+            result += f'{segment[0][0]} {len(segment)}\n'.encode('ascii')
+            for _, offset in segment:
+                result += f'{offset:010d} 00000 n\n'.encode('ascii')
+            segment = list()
+        elif i not in xref.keys():
+            pass
+        else:
+            segment.append((i, xref[i]))
+        i += 1
+    result += trailer + b'\n'
+    result += f'startxref\n{startxref}\n%%EOF\n'.encode('ascii')
+    return result
+def make_polyglot(gemini: str, pdf: bytes) -> str:
+    return _filter_pdf(gemini, pdf)
+
+
 class GemdocParserException(Exception):
     pass
 
@@ -81,7 +258,6 @@ def is_gemdoc_pdf(doc: str) -> bool:
     a pdf file that does not contain a valid gemdoc signature on the second
     line.
     """
-    magic_line = '%♊\ufe0e🗎\ufe0e'
     if not doc.lstrip().startswith('%PDF-'):
         False
     elif not doc.lstrip().splitlines()[1].startswith(magic_line):
@@ -512,4 +688,4 @@ if __name__ == "__main__":
     html = HTML(string=html)
     pdf = BytesIO()
     html.write_pdf(pdf, stylesheets=css)
-    pdf.seek(0); write_output(pdf.read())
+    pdf.seek(0); write_output(make_polyglot(gemini, pdf.read()))
