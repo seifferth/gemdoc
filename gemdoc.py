@@ -693,6 +693,15 @@ Options
                             are 'author', 'date', 'url', 'subject' and
                             'keywords'. This option may be passed multiple
                             times to set more than one key.
+                            For local input files, metadata may optionally
+                            also be set by including lines like the following
+                            one in the input document: '%!GEMDOC KEY=VALUE'.
+                            The supported keys are the same as available via
+                            the command line option. If a value is specified
+                            via both options, the one passed via the command
+                            line takes precedence. If neither are present and
+                            the input is already in polyglot format, existing
+                            pdf metadata will be preserved.
   --css FILE                Use the specified css stylesheet to style the
                             document. This option may be passed multiple
                             times to use multiple css files. User-specified
