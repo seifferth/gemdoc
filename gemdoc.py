@@ -689,6 +689,11 @@ Options
                             already a polyglot file, this will simply update
                             the pdf part of that file to match the contents
                             of the text/gemini part.
+  --no-convert              Do not convert the text/gemini file into a binary
+                            polyglot. This may be useful to simply download
+                            text/gemini files from gemini servers. It also
+                            comes in handy when one wants to debug input from
+                            a remote source that cannot be converted to pdf.
   -M K=V, --metadata=K=V    Set the metadata key K to value V. Valid keys
                             are 'author', 'date', 'url', 'subject' and
                             'keywords'. This option may be passed multiple
@@ -720,9 +725,9 @@ Options
 if __name__ == "__main__":
     opts, args = getopt(sys.argv[1:], 'ho:M:i',
                         ['help', 'output=', 'metadata=', 'css=',
-                         'print-default-css', 'in-place'])
+                         'print-default-css', 'in-place', 'no-convert'])
     output = '-'; metadata = dict(); input_type = None
-    in_place = False; o_flag = False
+    in_place = False; o_flag = False; no_convert = False
     print_default_css = False; stylesheets = list()
     for k, v in opts:
         if k in ['-h', '--help']:
@@ -731,6 +736,8 @@ if __name__ == "__main__":
             output = v; o_flag = True
         elif k in ['-i', '--in-place']:
             in_place = True
+        elif k == '--no-convert':
+            no_convert = True
         elif k in ['-M', '--metadata']:
             m_key, m_value = v.split('=', maxsplit=1) if '=' in v \
                              else v.split(':', maxsplit=1) if ':' in v \
@@ -829,8 +836,11 @@ if __name__ == "__main__":
             if k not in metadata: metadata[k] = v
 
     elif input_type == 'remote':
-        if mime_type.lower() in ['text/gemini', 'application/pdf'] \
-                             and doc.lstrip().startswith('%PDF-'):
+        if no_convert:
+            write_output(doc)
+            exit(0)
+        elif mime_type.lower() in ['text/gemini', 'application/pdf'] \
+                               and doc.lstrip().startswith('%PDF-'):
             write_output(doc)
             exit(0)
         elif mime_type.lower() == 'text/gemini':
