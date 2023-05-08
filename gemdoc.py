@@ -193,28 +193,28 @@ class GemdocPDFObject():
         if type(flist) == bytes: flist = [flist]
         if self._stream != None:
             stream = base64.a85encode(self._stream)+b'~>'
-            binary = (b'\nstream\n' + stream + b'\nendstream\n')
+            binary = (b'\rstream\n' + stream + b'\rendstream\r')
             flist.insert(0, b'/ASCII85Decode')
         else:
-            binary = self._contents
+            binary = self._contents.replace(b'\n', b'\r')
         if flist:
             dictionary[b'/Filter'] = flist[0] if len(flist) == 1 else flist
         if b'/Length' in dictionary:
             dictionary[b'/Length'] = str(len(stream)).encode('ascii')
         if b'/Length1' in dictionary:
             _ = dictionary.pop(b'/Length1')
-        binary = self._objnum + b'\n' + \
+        binary = self._objnum + b'\r' + \
                  (self._serialize_dictionary(dictionary)
                                             if dictionary else b'') + \
                  binary
-        if not binary.endswith(b'\n'): binary += b'\n'
-        binary += b'endobj\n'
+        if not binary.endswith(b'\r'): binary += b'\r'
+        binary += b'endobj\r'
         return binary
 class GemdocPDFTrailer(GemdocPDFObject):
     def __init__(self, binary: bytes):
         super().__init__(b'0 0 obj\n'+binary+b'\nendobj')
     def serialize(self) -> bytes:
-        return b'trailer\n'+self._serialize_dictionary(self.dictionary)+b'\n'
+        return b'trailer\r'+self._serialize_dictionary(self.dictionary)+b'\r'
 
 class GemdocPDF():
     def _discard_pre_obj(self, binary: bytes) -> tuple[bytes,bytes]:
@@ -238,11 +238,11 @@ class GemdocPDF():
         self._objects = dict()
         self._trailer = GemdocPDFTrailer(b'')
         while binary:
-            if binary.startswith(b'\nxref'):
-                s, e = binary.find(b'\ntrailer'), binary.find(b'\nstartxref')
-                if 0 <= s < e:
-                    s += len(b'\ntrailer')
-                    self._trailer = GemdocPDFTrailer(binary[s:e])
+            if re.match(rb'[\r\n]xref', binary):
+                s, e = binary.find(b'trailer'), binary.find(b'startxref')
+                if 0 <= s < e-1:
+                    s += len(b'trailer')
+                    self._trailer = GemdocPDFTrailer(binary[s:e-1])
                 eof = binary.find(b'%%EOF')
                 binary = binary[eof+len(b'%%EOF'):] if eof > -1 else b''
             else:
@@ -259,11 +259,11 @@ class GemdocPDF():
         root = self._objects[root_objnum].dictionary
         filespec_objnum = gemini_objnum + 1
         filespec = GemdocPDFObject(
-                    (f'{filespec_objnum} 0 obj\n'
+                    (f'{filespec_objnum} 0 obj\r'
                      '<</Type/Filespec'
                       f'/F({gemini_filename})'
                       f'/EF<</F {gemini_objnum} 0 R>>'
-                    f'>>\nendobj\n').encode('ascii', errors='replace')
+                    f'>>\nendobj\r').encode('ascii', errors='replace')
                    )
         self._objects[filespec_objnum] = filespec
         fileref = f'{gemini_objnum} 0 R'.encode('ascii')
@@ -317,21 +317,22 @@ class GemdocPDF():
                                                             .encode('utf-8')
         else:
             result = f'%PDF-1.6\n%¶🗎\ufe0e\n'.encode('utf-8')
+        result += b'```% What follows is a pdf representation of this file\n'
         for objnum, obj in self._objects.items():
             xref[objnum] = len(result)
             result += obj.serialize()
-        startxref = len(result); result += b'xref\n'
-        result += f'0 {max(xref.keys())+1}\n'.encode('ascii')
-        result += (10*'0'+' 65535 f \n').encode('ascii')
+        startxref = len(result); result += b'xref\r'
+        result += f'0 {max(xref.keys())+1}\r'.encode('ascii')
+        result += (10*'0'+' 65535 f \r').encode('ascii')
         last_free = 0
         for i in range(1, max(xref.keys())+1):
             if i in xref:
-                result += f'{xref[i]:010d} 00000 n \n'.encode('ascii')
+                result += f'{xref[i]:010d} 00000 n \r'.encode('ascii')
             else:
-                result += f'{last_free:010d} 00001 f \n'.encode('ascii')
+                result += f'{last_free:010d} 00001 f \r'.encode('ascii')
                 last_free = i
         result += self._trailer.serialize()
-        result += f'startxref\n{startxref}\n%%EOF\n'.encode('ascii')
+        result += f'startxref\r{startxref}\r%%EOF\n'.encode('ascii')
         return result
 
 
