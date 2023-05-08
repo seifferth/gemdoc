@@ -828,11 +828,6 @@ if __name__ == "__main__":
             write_output(doc)
             exit(0)
 
-    gemini, html = parse_gemini(doc, metadata)
-    html = HTML(string=html)
-    pdf = BytesIO()
-    html.write_pdf(pdf, stylesheets=css)
-
     # Ensure that all metadata is valid ascii; possibly dropping characters
     for k, v in metadata.items():
         if k == 'url':
@@ -856,6 +851,11 @@ if __name__ == "__main__":
             gemini_filename = path.split('/')[-1]
             if not re.match(r'[^\.]\.[^\.]', gemini_filename):
                 gemini_filename = gemini_filename+'.gmi'
+
+    gemini, html = parse_gemini(doc, metadata)
+    html = HTML(string=html)
+    pdf = BytesIO()
+    html.write_pdf(pdf, stylesheets=css)
 
     pdf.seek(0); polyglot = GemdocPDF(gemini, pdf.read(),
                                       gemini_filename=gemini_filename)
