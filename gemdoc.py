@@ -637,6 +637,7 @@ if __name__ == "__main__":
                              else v.split(':', maxsplit=1) if ':' in v \
                              else (v, '')
             m_key, m_value = m_key.strip(), m_value.strip()
+            if m_key == 'uri': m_key = 'url'
             metadata[m_key] = m_value
         elif k == '--css':
             stylesheets.append(v)
