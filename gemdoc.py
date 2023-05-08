@@ -7,7 +7,8 @@ from typing import Union
 from io import BytesIO
 #from weasyprint import HTML, CSS       # moved below to improve performance
                                         # if weasyprint is not used.
-from urllib.parse import urlparse, urljoin, quote as urlquote
+from urllib.parse import urlparse, urljoin, quote as urlquote,\
+                                            unquote as urlunquote
 from html import escape as html_escape
 from mimetypes import guess_extension
 from getopt import gnu_getopt as getopt
@@ -849,6 +850,11 @@ if __name__ == "__main__":
         _scheme, _netloc, path, *_ = urlparse(metadata['url'])
         if path:
             gemini_filename = path.split('/')[-1]
+            if '%' in gemini_filename:
+                gemini_filename = urlunquote(gemini_filename)
+                gemini_filename = ''.join((c if c.isascii() else '_'
+                                             for c in gemini_filename))
+                _ = gemini_filename.encode('ascii')
             if not re.match(r'[^\.]\.[^\.]', gemini_filename):
                 gemini_filename = gemini_filename+'.gmi'
 
