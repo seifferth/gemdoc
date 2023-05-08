@@ -832,7 +832,7 @@ if __name__ == "__main__":
         elif mime_type.lower() == 'text/gemini':
             pass
         else:
-            if not re.match(r'[^\.]\.[^\.]+$', output):
+            if not re.search(r'[^\.]\.[^\.]+$', output):
                 output += guess_extension(mime_type, strict=False) or ''
             print(f'Writing non pdf file to {output}. The file\'s mime type '
                   f'was reported to be \'{mime_type}\'', file=sys.stderr)
@@ -876,7 +876,7 @@ if __name__ == "__main__":
                        'for the embedded source file have been replaced '
                        'with underscores', file=sys.stderr)
                 _ = gemini_filename.encode('ascii')
-            if not re.match(r'[^\.]\.[^\.]', gemini_filename):
+            if not re.search(r'[^\.]\.[^\.]', gemini_filename):
                 gemini_filename = gemini_filename+'.gmi'
 
     if 'endstream' in doc:
