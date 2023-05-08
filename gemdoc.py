@@ -320,20 +320,15 @@ class GemdocPDF():
             xref[objnum] = len(result)
             result += obj.serialize()
         startxref = len(result); result += b'xref\n'
-        result += b'0 1\n'
+        result += f'0 {max(xref.keys())+1}\n'.encode('ascii')
         result += (10*'0'+' 65535 f \n').encode('ascii')
-        i = 1; max_i = max(xref.keys())+1; segment = list()
-        while i < max_i+1:  # Needs to be max_i+1 so the last segment gets flushed
-            if segment and i not in xref.keys():
-                result += f'{segment[0][0]} {len(segment)}\n'.encode('ascii')
-                for _, offset in segment:
-                    result += f'{offset:010d} 00000 n \n'.encode('ascii')
-                segment = list()
-            elif i not in xref.keys():
-                pass
+        last_free = 0
+        for i in range(1, max(xref.keys())+1):
+            if i in xref:
+                result += f'{xref[i]:010d} 00000 n \n'.encode('ascii')
             else:
-                segment.append((i, xref[i]))
-            i += 1
+                result += f'{last_free:010d} 00000 f \n'.encode('ascii')
+                last_free = i
         result += self._trailer.serialize()
         result += f'startxref\n{startxref}\n%%EOF\n'.encode('ascii')
         return result
