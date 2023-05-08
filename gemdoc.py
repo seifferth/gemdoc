@@ -396,6 +396,7 @@ def parse_gemini(doc: str, metadata: dict) -> tuple[str,str]:
         elif doc[i].startswith('```'):
             body.append('<pre>'); preformatted = True
         elif doc[i].startswith('# '):
+            body.append('<div class="headingcontext">')
             if not got_title:
                 got_title = True; title = doc[i][2:].strip()
                 add(title, tag='h1', css_class='title')
@@ -412,10 +413,27 @@ def parse_gemini(doc: str, metadata: dict) -> tuple[str,str]:
                     metadata['title'] = title
             else:
                 add(doc[i][2:], tag='h1')
+            i += 1
+            while i < len(doc) and not doc[i].strip():
+                body.append('<br />'); i += 1
+            i -= 1
+            body.append('</div>')
         elif doc[i].startswith('## '):
+            body.append('<div class="headingcontext">')
             add(doc[i][3:], tag='h2')
+            i += 1
+            while i < len(doc) and not doc[i].strip():
+                body.append('<br />'); i += 1
+            i -= 1
+            body.append('</div>')
         elif doc[i].startswith('### '):
+            body.append('<div class="headingcontext">')
             add(doc[i][4:], tag='h3')
+            i += 1
+            while i < len(doc) and not doc[i].strip():
+                body.append('<br />'); i += 1
+            i -= 1
+            body.append('</div>')
         elif doc[i].startswith('>'):
             add(doc[i][1:], tag='blockquote')
         elif doc[i].startswith('* '):
@@ -561,6 +579,11 @@ h1.title {
 h2.subtitle {
     /* The heading directly beneath the document title that serves as
        the document subtitle */
+}
+
+div.headingcontext {
+    page-break-inside: avoid;
+    page-break-after: avoid;
 }
 
 /*** Lists ***/
