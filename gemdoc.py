@@ -213,8 +213,8 @@ def _consume_obj(binary: bytes) -> tuple[int,bytes,bytes]:
 def _filter_pdf(gemini: str, binary: bytes) -> bytes:
     xref = dict()
     embobj = f'        \r1 0 obj\r<</Length {len(gemini)}>>\rstream\n'+\
-             gemini + f'\n\nendstream\nendobj\n'
-    result = f'%PDF-1.6\n{magic_line}{embobj}\n\n\n'.encode('utf-8')
+             gemini + f'\n\nendstream\nendobj'
+    result = f'%PDF-1.6\n{magic_line}{embobj}\n'.encode('utf-8')
     while binary:
         if binary.startswith(b'\nxref'):
             break
