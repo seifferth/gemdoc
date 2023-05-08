@@ -7,7 +7,7 @@ from typing import Union
 from io import BytesIO
 #from weasyprint import HTML, CSS       # moved below to improve performance
                                         # if weasyprint is not used.
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urlparse, urljoin, quote as urlquote
 from html import escape as html_escape
 from mimetypes import guess_extension
 from getopt import gnu_getopt as getopt
@@ -262,12 +262,13 @@ class GemdocPDF():
                      '<</Type/Filespec'
                       f'/F({gemini_filename})'
                       f'/EF<</F {gemini_objnum} 0 R>>'
-                    f'>>\nendobj\n').encode('utf-8')
+                    f'>>\nendobj\n').encode('ascii', errors='replace')
                    )
         self._objects[filespec_objnum] = filespec
         fileref = f'{gemini_objnum} 0 R'.encode('ascii')
         root[b'/Names'] = {b'/EmbeddedFiles': {b'/Names': [
-                              f'({gemini_filename})'.encode('utf-8'),
+                              f'({gemini_filename})'.encode('ascii',
+                                                            errors='replace'),
                               f'{filespec_objnum} 0 R'.encode('ascii'),
                           ]}}
         new_size = str(filespec_objnum+1).encode('ascii')
@@ -287,7 +288,11 @@ class GemdocPDF():
             elif k == 'url':       k = b'/URL'
             elif k == 'subject':   k = b'/Subject'
             elif k == 'keywords':  k = b'/Keywords'
-            info[k] = f'({v})'.encode('utf-8')
+            if k == '/URL':
+                info[k] = f'({urlquote(v, safe="/%")})'.encode('ascii')
+            else:
+                info[k] = b'('+f'\ufeff{v}'.encode('utf-16',
+                                                   errors='replace')+b')'
     def get_metadata(self):
         metadata = dict()
         for k, v in self._info_dict().items():
@@ -298,11 +303,11 @@ class GemdocPDF():
             elif k == b'/Subject':         k = 'subject'
             elif k == b'/Keywords':        k = 'keywords'
             else: continue
-            if type(v) == bytes:
-                v = v.decode('utf-8')
-                if v.startswith('('): v = v[1:]
-                if v.endswith(')'):   v = v[:-1]
-                metadata[k] = v
+            if not (v.startswith(b'(') and v.endswith(b')')): continue
+            if k == 'url':
+                metadata[k] = v[1:-1].decode('ascii')
+            else:
+                metadata[k] = v[1:-1].decode('utf-16')
         return metadata
     def serialize(self) -> bytes:
         xref = dict()
@@ -808,6 +813,13 @@ if __name__ == "__main__":
     html.write_pdf(pdf, stylesheets=css)
     gemini_filename = 'source.gmi'
     if 'url' in metadata:
+        metadata['url'] = urlquote(metadata['url'], safe='/%')
+        metadata['url'] = urlquote(metadata['url'], safe='/%')
+        # I believe that this invocation of the urlquote function should
+        # be idempotent. That is why I apply it again when writing pdf
+        # metadata; and yet again every time the pdf part is updated. If
+        # this function should not be idempotent, calling it twice early
+        # on should help me spot errors earlier in the process.
         _scheme, _netloc, path, *_ = urlparse(metadata['url'])
         if path:
             gemini_filename = path.split('/')[-1]
