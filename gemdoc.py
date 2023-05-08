@@ -238,7 +238,7 @@ class GemdocPDF():
                 self._objects.append((objnum, GemdocPDFObject(obj)))
             s, e = binary.find(b'\ntrailer'), binary.find(b'\nstartxref')
             self._trailer = binary[s+1:e]
-    def generate_pdf(self) -> bytes:
+    def serialize(self) -> bytes:
         xref = dict()
         embobj = f'\n```\n```{10*" "}\r1 0 obj\r'+\
                  f'<</Length {len(gemini)}>>\rstream\n'+\
@@ -266,7 +266,7 @@ class GemdocPDF():
         result += f'startxref\n{startxref}\n%%EOF\n'.encode('ascii')
         return result
 def make_polyglot(gemini: str, pdf: bytes) -> str:
-    return GemdocPDF(gemini, pdf).generate_pdf()
+    return GemdocPDF(gemini, pdf).serialize()
 
 
 class GemdocParserException(Exception):
