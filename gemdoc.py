@@ -209,8 +209,6 @@ class GemdocPDFObject():
         return binary
 
 class GemdocPDF():
-    def _filter_object(self, binary: bytes) -> bytes:
-        return GemdocPDFObject(binary).serialize()
     def _discard_pre_obj(self, binary: bytes) -> tuple[bytes,bytes]:
         m = re.search(rb'\d+\s+\d+\s+o', binary)
         if not m: return b''
@@ -237,7 +235,7 @@ class GemdocPDF():
                 binary = self._discard_pre_obj(binary)
                 if not binary: break
                 objnum, obj, binary = self._consume_obj(binary)
-                self._objects.append((objnum, obj))
+                self._objects.append((objnum, GemdocPDFObject(obj)))
             s, e = binary.find(b'\ntrailer'), binary.find(b'\nstartxref')
             self._trailer = binary[s+1:e]
     def generate_pdf(self) -> bytes:
@@ -248,8 +246,7 @@ class GemdocPDF():
         result = f'%PDF-1.6\n{magic_line}{embobj}\n'.encode('utf-8')
         for objnum, obj in self._objects:
             xref[objnum] = len(result)
-            obj = self._filter_object(obj)
-            result += obj
+            result += obj.serialize()
         startxref = len(result); result += b'xref\n'
         result += b'0 1\n'
         result += (10*'0'+' 65535 f\n').encode('ascii')
