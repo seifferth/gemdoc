@@ -536,8 +536,13 @@ a::after {
     /* Insert the url in brackets after the link label */
     content: ' ('attr(href)')';
 }
+/* The _nolabel class describes links where no human-readable label is
+   provided. In these cases, the content and the href of the a tag are
+   the same. In order to not print the same url twice, the automated
+   printing of the parenthesized url is disabled for those links. */
 a._nolabel::before { content: ''; }
 a._nolabel::after { content: ''; }
+
 a.gemini {
     /* Styling for links to gemini:// urls */
     color: #399ee6;
