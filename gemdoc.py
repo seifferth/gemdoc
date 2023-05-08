@@ -326,7 +326,7 @@ class GemdocPDF():
             if i in xref:
                 result += f'{xref[i]:010d} 00000 n \n'.encode('ascii')
             else:
-                result += f'{last_free:010d} 00000 f \n'.encode('ascii')
+                result += f'{last_free:010d} 00001 f \n'.encode('ascii')
                 last_free = i
         result += self._trailer.serialize()
         result += f'startxref\n{startxref}\n%%EOF\n'.encode('ascii')
