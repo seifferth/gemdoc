@@ -775,7 +775,10 @@ if __name__ == "__main__":
         exit(1)
 
     if input_type == 'local':
-        if is_gemdoc_pdf(doc): doc, pdf_metadata = extract_gemini_part(doc)
+        if is_gemdoc_pdf(doc):
+            doc, pdf_metadata = extract_gemini_part(doc)
+        else:
+            pdf_metadata = dict()
         doc, new_metadata = parse_magic_lines(doc)
         for k, v in new_metadata:
             if k not in metadata: metadata[k] = v
