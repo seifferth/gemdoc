@@ -288,11 +288,7 @@ class GemdocPDF():
             elif k == 'url':       k = b'/URL'
             elif k == 'subject':   k = b'/Subject'
             elif k == 'keywords':  k = b'/Keywords'
-            if k == '/URL':
-                info[k] = f'({urlquote(v, safe="/%")})'.encode('ascii')
-            else:
-                info[k] = b'('+f'\ufeff{v}'.encode('utf-16',
-                                                   errors='replace')+b')'
+            info[k] = f'({v})'.encode('ascii')
     def get_metadata(self):
         metadata = dict()
         for k, v in self._info_dict().items():
@@ -304,10 +300,7 @@ class GemdocPDF():
             elif k == b'/Keywords':        k = 'keywords'
             else: continue
             if not (v.startswith(b'(') and v.endswith(b')')): continue
-            if k == 'url':
-                metadata[k] = v[1:-1].decode('ascii')
-            else:
-                metadata[k] = v[1:-1].decode('utf-16')
+            metadata[k] = v[1:-1].decode('ascii')
         return metadata
     def serialize(self) -> bytes:
         xref = dict()
@@ -813,16 +806,27 @@ if __name__ == "__main__":
     html.write_pdf(pdf, stylesheets=css)
     gemini_filename = 'source.gmi'
     if 'url' in metadata:
-        metadata['url'] = urlquote(metadata['url'], safe='/%')
-        metadata['url'] = urlquote(metadata['url'], safe='/%')
-        # I believe that this invocation of the urlquote function should
-        # be idempotent. That is why I apply it again when writing pdf
-        # metadata; and yet again every time the pdf part is updated. If
-        # this function should not be idempotent, calling it twice early
-        # on should help me spot errors earlier in the process.
         _scheme, _netloc, path, *_ = urlparse(metadata['url'])
         if path:
             gemini_filename = path.split('/')[-1]
+
+    # Ensure that all metadata is valid ascii; possibly dropping characters
+    for k, v in metadata.items():
+        if k == 'url':
+            no_urlquote_chars = '~:/?#[]@!$&\'()*+,;='
+            v = urlquote(v, safe=no_urlquote_chars)
+            v = urlquote(v, safe=no_urlquote_chars)
+            # I believe that this invocation of the urlquote function
+            # should be idempotent. That is why I apply it again when
+            # writing pdf metadata; and yet again every time the pdf part
+            # is updated. If this function should not be idempotent,
+            # calling it twice early on should help me spot errors
+            # earlier in the process.
+        else:
+            v = ''.join((c if c.isascii() else '_' for c in v))
+        _ = v.encode('ascii') # Raise exception if encoding as ascii fails
+        metadata[k] = v
+
     pdf.seek(0); polyglot = GemdocPDF(gemini, pdf.read(),
                                       gemini_filename=gemini_filename)
     polyglot.set_metadata(metadata)
