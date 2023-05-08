@@ -207,6 +207,11 @@ class GemdocPDFObject():
         if not binary.endswith(b'\n'): binary += b'\n'
         binary += b'endobj\n'
         return binary
+class GemdocPDFTrailer(GemdocPDFObject):
+    def __init__(self, binary: bytes):
+        super().__init__(b'0 0 obj\n'+binary+b'\nendobj')
+    def serialize(self) -> bytes:
+        return b'trailer\n'+self._serialize_dictionary(self.dictionary)+b'\n'
 
 class GemdocPDF():
     def _discard_pre_obj(self, binary: bytes) -> tuple[bytes,bytes]:
@@ -227,11 +232,13 @@ class GemdocPDF():
         if type(binary) == str: binary = binary.encode('utf-8')
         self._gemini = gemini
         self._objects = list()
-        self._trailer = b''
+        self._trailer = GemdocPDFTrailer(b'')
         while binary:
             if binary.startswith(b'\nxref'):
                 s, e = binary.find(b'\ntrailer'), binary.find(b'\nstartxref')
-                self._trailer = binary[s+1:e]
+                if 0 <= s < e:
+                    s += len(b'\ntrailer')
+                    self._trailer = GemdocPDFTrailer(binary[s:e])
                 eof = binary.find(b'%%EOF')
                 binary = binary[eof+len(b'%%EOF'):] if eof > -1 else b''
             else:
@@ -263,7 +270,7 @@ class GemdocPDF():
             else:
                 segment.append((i, xref[i]))
             i += 1
-        result += self._trailer + b'\n'
+        result += self._trailer.serialize()
         result += f'startxref\n{startxref}\n%%EOF\n'.encode('ascii')
         return result
 
