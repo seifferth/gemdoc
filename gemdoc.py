@@ -854,6 +854,8 @@ if __name__ == "__main__":
         _scheme, _netloc, path, *_ = urlparse(metadata['url'])
         if path:
             gemini_filename = path.split('/')[-1]
+            if not re.match(r'[^\.]\.[^\.]', gemini_filename):
+                gemini_filename = gemini_filename+'.gmi'
 
     pdf.seek(0); polyglot = GemdocPDF(gemini, pdf.read(),
                                       gemini_filename=gemini_filename)
