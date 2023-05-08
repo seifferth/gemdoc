@@ -281,10 +281,13 @@ class GemdocPDF():
         return metadata
     def serialize(self) -> bytes:
         xref = dict()
-        embobj = f'\n```\n```{10*" "}\r1 0 obj\r'+\
-                 f'<</Length {len(gemini)}>>\rstream\n'+\
-                 gemini + f'\n\nendstream\nendobj'
-        result = f'%PDF-1.6\n{magic_line}{embobj}\n'.encode('utf-8')
+        gemini_objnum = max(self._objects.keys())+1
+        result = f'%PDF-1.6\n{magic_line}\n```\n```{10*" "}\r'\
+                                                            .encode('utf-8')
+        xref[gemini_objnum] = len(result)
+        result += (f'{gemini_objnum} 0 obj\r<</Length {len(gemini)}>>'
+                   f'\rstream\n{gemini}\n\nendstream\nendobj\n') \
+                                                            .encode('utf-8')
         for objnum, obj in self._objects.items():
             xref[objnum] = len(result)
             result += obj.serialize()
