@@ -191,16 +191,15 @@ class GemdocPDFObject():
         flist = dictionary.pop(b'/Filter', [])
         if type(flist) == bytes: flist = [flist]
         if self._stream != None:
-            binary = (b'\nstream\n' +
-                      base64.a85encode(self._stream)+b'~>' +
-                      b'\nendstream\n')
+            stream = base64.a85encode(self._stream)+b'~>'
+            binary = (b'\nstream\n' + stream + b'\nendstream\n')
             flist.insert(0, b'/ASCII85Decode')
         else:
             binary = self._contents
         if flist:
             dictionary[b'/Filter'] = flist[0] if len(flist) == 1 else flist
         if b'/Length' in dictionary:
-            dictionary[b'/Length'] = str(len(binary)).encode('ascii')
+            dictionary[b'/Length'] = str(len(stream)).encode('ascii')
         if b'/Length1' in dictionary:
             _ = dictionary.pop(b'/Length1')
         binary = self._objnum + b'\n' + \
