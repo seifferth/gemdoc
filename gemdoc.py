@@ -201,6 +201,8 @@ class GemdocPDFObject():
             dictionary[b'/Filter'] = flist[0] if len(flist) == 1 else flist
         if b'/Length' in dictionary:
             dictionary[b'/Length'] = str(len(binary)).encode('ascii')
+        if b'/Length1' in dictionary:
+            _ = dictionary.pop(b'/Length1')
         binary = self._objnum + b'\n' + \
                  (self._serialize_dictionary(dictionary)
                                             if dictionary else b'') + \
