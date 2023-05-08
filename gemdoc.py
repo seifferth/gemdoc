@@ -241,12 +241,11 @@ class GemdocPDF():
         endobj = binary.find(b'endobj')+len(b'endobj')
         if endobj == -1: raise Exception('Missing endobj keyword')
         return objnum, binary[:endobj]+b'\n', binary[endobj:]
-    def filter_pdf(self, gemini: str, binary: bytes) -> bytes:
-        xref = dict()
-        embobj = f'\n```\n```{10*" "}\r1 0 obj\r'+\
-                 f'<</Length {len(gemini)}>>\rstream\n'+\
-                 gemini + f'\n\nendstream\nendobj'
-        result = f'%PDF-1.6\n{magic_line}{embobj}\n'.encode('utf-8')
+    def __init__(self, gemini: str, binary: Union[bytes,str]):
+        if type(binary) == str: binary = binary.encode('utf-8')
+        self._gemini = gemini
+        self._objects = list()
+        self._trailer = b''
         while binary:
             if binary.startswith(b'\nxref'):
                 break
@@ -254,13 +253,19 @@ class GemdocPDF():
                 binary = self._discard_pre_obj(binary)
                 if not binary: break
                 objnum, obj, binary = self._consume_obj(binary)
-                xref[objnum] = len(result)
-                obj = self._filter_object(obj)
-                result += obj
-        s, e = binary.find(b'\ntrailer'), binary.find(b'\nstartxref')
-        if result[-1] != b'\n': result += b'\n'
-        trailer = binary[s+1:e]
-        if result[-1] != b'\n': result += b'\n'
+                self._objects.append((objnum, obj))
+            s, e = binary.find(b'\ntrailer'), binary.find(b'\nstartxref')
+            self._trailer = binary[s+1:e]
+    def generate_pdf(self) -> bytes:
+        xref = dict()
+        embobj = f'\n```\n```{10*" "}\r1 0 obj\r'+\
+                 f'<</Length {len(gemini)}>>\rstream\n'+\
+                 gemini + f'\n\nendstream\nendobj'
+        result = f'%PDF-1.6\n{magic_line}{embobj}\n'.encode('utf-8')
+        for objnum, obj in self._objects:
+            xref[objnum] = len(result)
+            obj = self._filter_object(obj)
+            result += obj
         startxref = len(result); result += b'xref\n'
         result += b'0 1\n'
         result += (10*'0'+' 65535 f\n').encode('ascii')
@@ -276,11 +281,11 @@ class GemdocPDF():
             else:
                 segment.append((i, xref[i]))
             i += 1
-        result += trailer + b'\n'
+        result += self._trailer + b'\n'
         result += f'startxref\n{startxref}\n%%EOF\n'.encode('ascii')
         return result
 def make_polyglot(gemini: str, pdf: bytes) -> str:
-    return GemdocPDF().filter_pdf(gemini, pdf)
+    return GemdocPDF(gemini, pdf).generate_pdf()
 
 
 class GemdocParserException(Exception):
