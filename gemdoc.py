@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import sys, os
+import sys, os, tempfile
 import re, base64
 import socket, ssl
 from typing import Union
@@ -569,6 +569,12 @@ Usage: gemdoc [OPTION]... FILE
 
 Options
   -o FILE, --output=FILE    Write output to FILE rather than to stdout.
+  -i, --in-place            Modify the input file in place. Or more
+                            specifically, replace the input file with the
+                            resulting polyglot file. If the input file is
+                            already a polyglot file, this will simply update
+                            the pdf part of that file to match the contents
+                            of the text/gemini part.
   -M K=V, --metadata=K=V    Set the metadata key K to value V. Valid keys
                             are 'author', 'date', 'url', 'subject' and
                             'keywords'. This option may be passed multiple
@@ -589,16 +595,19 @@ Options
 """.lstrip()
 
 if __name__ == "__main__":
-    opts, args = getopt(sys.argv[1:], 'ho:M:',
+    opts, args = getopt(sys.argv[1:], 'ho:M:i',
                         ['help', 'output=', 'metadata=', 'css=',
-                         'print-default-css'])
+                         'print-default-css', 'in-place'])
     output = '-'; metadata = dict(); input_type = None
+    in_place = False; o_flag = False
     print_default_css = False; stylesheets = list()
     for k, v in opts:
         if k in ['-h', '--help']:
             print(_cli_help); exit(0)
         elif k in ['-o', '--output']:
-            output = v
+            output = v; o_flag = True
+        elif k in ['-i', '--in-place']:
+            in_place = True
         elif k in ['-M', '--metadata']:
             m_key, m_value = v.split('=', maxsplit=1) if '=' in v \
                              else v.split(':', maxsplit=1) if ':' in v \
@@ -655,6 +664,21 @@ if __name__ == "__main__":
                'no such file on the local system either.', file=sys.stderr)
         exit(1)
 
+    if in_place:
+        if o_flag:
+            print('The -o and -i flags are mutually exclusive',
+                  file=sys.stderr)
+            exit(1)
+        elif input_type != 'local':
+            print('The -i flag can only be used for local inputs',
+                  file=sys.stderr)
+            exit(1)
+        else:
+            output = tempfile.mktemp(
+                dir = os.path.dirname(args[0]),
+                prefix = os.path.basename(args[0])+'.',
+            )
+
     from weasyprint import HTML, CSS
     css = [CSS(string=_default_css)]
     try:
@@ -691,3 +715,4 @@ if __name__ == "__main__":
     pdf = BytesIO()
     html.write_pdf(pdf, stylesheets=css)
     pdf.seek(0); write_output(make_polyglot(gemini, pdf.read()))
+    if in_place: os.rename(output, args[0])
