@@ -832,7 +832,7 @@ if __name__ == "__main__":
     # Ensure that all metadata is valid ascii; possibly dropping characters
     for k, v in metadata.items():
         if k == 'url':
-            no_urlquote_chars = '~:/?#[]@!$&\'()*+,;='
+            no_urlquote_chars = '~:/?#[]@!$&\'()*+,;=%'
             v = urlquote(v, safe=no_urlquote_chars)
             v = urlquote(v, safe=no_urlquote_chars)
             # I believe that this invocation of the urlquote function
