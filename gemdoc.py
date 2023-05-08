@@ -832,11 +832,6 @@ if __name__ == "__main__":
     html = HTML(string=html)
     pdf = BytesIO()
     html.write_pdf(pdf, stylesheets=css)
-    gemini_filename = 'source.gmi'
-    if 'url' in metadata:
-        _scheme, _netloc, path, *_ = urlparse(metadata['url'])
-        if path:
-            gemini_filename = path.split('/')[-1]
 
     # Ensure that all metadata is valid ascii; possibly dropping characters
     for k, v in metadata.items():
@@ -854,6 +849,11 @@ if __name__ == "__main__":
             v = ''.join((c if c.isascii() else '_' for c in v))
         _ = v.encode('ascii') # Raise exception if encoding as ascii fails
         metadata[k] = v
+    gemini_filename = 'source.gmi'
+    if 'url' in metadata:
+        _scheme, _netloc, path, *_ = urlparse(metadata['url'])
+        if path:
+            gemini_filename = path.split('/')[-1]
 
     pdf.seek(0); polyglot = GemdocPDF(gemini, pdf.read(),
                                       gemini_filename=gemini_filename)
