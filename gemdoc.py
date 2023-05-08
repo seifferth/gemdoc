@@ -11,6 +11,7 @@ from urllib.parse import urlparse, urljoin
 from html import escape as html_escape
 from mimetypes import guess_extension
 from getopt import gnu_getopt as getopt
+from copy import deepcopy
 
 
 magic_line = '%♊\ufe0e🗎\ufe0e'
@@ -75,7 +76,7 @@ def retrieve_url(url: str, max_redirects=10) -> tuple[str,str,Union[str,bytes]]:
                 raise GemdocClientException(f"Server replied: '{header}'")
 
 
-class GemdocPDF():
+class GemdocPDFObject():
     def _consume_whitespace(self, binary: bytes) -> bytes:
         m = re.search(rb'[^\s]', binary)
         if m: return binary[m.start():]
@@ -168,65 +169,48 @@ class GemdocPDF():
             v = self._serialize_list([v], delim=(b'',b''))
             items.extend([k, v])
         return b'<<'+b''.join(items)+b'>>'
-    def _filter_object(self, binary: bytes) -> bytes:
-        binary, objnum = self._consume_objnum(binary)
+    def __init__(self, binary: bytes):
+        binary, self._objnum = self._consume_objnum(binary)
         if binary.startswith(b'<<'):
-            binary, dictionary = self._consume_dictionary(binary)
+            binary, self._dictionary = self._consume_dictionary(binary)
         else:
-            dictionary = dict()
+            self._dictionary = dict()
         binary = self._consume_whitespace(binary)
         if binary.startswith(b'stream\n'):
-            stream = True; endstream = binary.find(b'endstream')
+            endstream = binary.find(b'endstream')
             if endstream == -1: raise Exception('Missing endstream keyword')
-            binary = binary[len(b'stream\n'):endstream]
+            self._stream = binary[len(b'stream\n'):endstream]
+            self._contents = None
         else:
-            stream = False; endobj = binary.find(b'endobj')
+            endobj = binary.find(b'endobj')
             if endobj == -1: raise Exception('Missing endobj keyword')
-            binary = binary[:endobj]
+            self._contents = binary[:endobj]
+            self._stream = None
+    def serialize(self) -> bytes:
+        dictionary = deepcopy(self._dictionary)
         flist = dictionary.get(b'/Filter', [])
         if type(flist) == bytes: flist = [flist]
-        if stream:
-            binary = base64.a85encode(binary)+b'~>'
+        if self._stream != None:
+            binary = (b'\nstream\n' +
+                      base64.a85encode(self._stream)+b'~>' +
+                      b'\nendstream\n')
             flist.insert(0, b'/ASCII85Decode')
-        dictionary[b'/Filter'] = flist[0] if len(flist) == 1 else flist
-        if b'/Length' in dictionary:
-            dictionary[b'/Length'] = str(len(binary)).encode('ascii')
-        binary = objnum + b'\n' + \
-                 (_serialize_dictionary(dictionary) if dictionary else b'') + \
-                 (b'\nstream\n'+binary+b'\nendstream' if stream else binary)
-        if not binary.endswith(b'\n'): binary += b'\n'
-        binary += b'endobj\n'
-        return binary
-    def _filter_object(self, binary: bytes) -> bytes:
-        binary, objnum = self._consume_objnum(binary)
-        if binary.startswith(b'<<'):
-            binary, dictionary = self._consume_dictionary(binary)
         else:
-            dictionary = dict()
-        binary = self._consume_whitespace(binary)
-        if binary.startswith(b'stream\n'):
-            stream = True; endstream = binary.find(b'endstream')
-            if endstream == -1: raise Exception('Missing endstream keyword')
-            binary = binary[len(b'stream\n'):endstream]
-        else:
-            stream = False; endobj = binary.find(b'endobj')
-            if endobj == -1: raise Exception('Missing endobj keyword')
-            binary = binary[:endobj]
-        flist = dictionary.get(b'/Filter', [])
-        if type(flist) == bytes: flist = [flist]
-        if stream:
-            binary = base64.a85encode(binary)+b'~>'
-            flist.insert(0, b'/ASCII85Decode')
+            binary = self._contents
         dictionary[b'/Filter'] = flist[0] if len(flist) == 1 else flist
         if b'/Length' in dictionary:
             dictionary[b'/Length'] = str(len(binary)).encode('ascii')
         binary = self._objnum + b'\n' + \
                  (self._serialize_dictionary(dictionary)
                                             if dictionary else b'') + \
-                 (b'\nstream\n'+binary+b'\nendstream' if stream else binary)
+                 binary
         if not binary.endswith(b'\n'): binary += b'\n'
         binary += b'endobj\n'
         return binary
+
+class GemdocPDF():
+    def _filter_object(self, binary: bytes) -> bytes:
+        return GemdocPDFObject(binary).serialize()
     def _discard_pre_obj(self, binary: bytes) -> tuple[bytes,bytes]:
         m = re.search(rb'\d+\s+\d+\s+o', binary)
         if not m: return b''
