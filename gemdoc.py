@@ -231,7 +231,7 @@ class GemdocPDF():
     def __init__(self, gemini: str, binary: Union[bytes,str]):
         if type(binary) == str: binary = binary.encode('utf-8')
         self._gemini = gemini
-        self._objects = list()
+        self._objects = dict()
         self._trailer = GemdocPDFTrailer(b'')
         while binary:
             if binary.startswith(b'\nxref'):
@@ -245,14 +245,46 @@ class GemdocPDF():
                 binary = self._discard_pre_obj(binary)
                 if not binary: break
                 objnum, obj, binary = self._consume_obj(binary)
-                self._objects.append((objnum, GemdocPDFObject(obj)))
+                self._objects[objnum] = GemdocPDFObject(obj)
+    def _info_dict(self):
+        info_ref = self._trailer.dictionary.get(b'/Info')
+        info_objnum = int(info_ref.decode('ascii').split()[0])
+        return self._objects[info_objnum].dictionary
+    def set_metadata(self, metadata: dict):
+        info = self._info_dict()
+        for k in list(info.keys()):
+            if info[k] == b'()': info.pop(k)
+        for k, v in metadata.items():
+            if   k == 'author':    k = b'/Author'
+            elif k == 'title':     k = b'/Title'
+            elif k == 'date':      k = b'/PublishingDate'
+            elif k == 'url':       k = b'/URL'
+            elif k == 'subject':   k = b'/Subject'
+            elif k == 'keywords':  k = b'/Keywords'
+            info[k] = f'({v})'.encode('utf-8')
+    def get_metadata(self):
+        metadata = dict()
+        for k, v in self._info_dict().items():
+            if   k == '/Author':          k = 'author'
+            elif k == '/Title':           k = b'title'
+            elif k == '/PublishingDate':  k = b'date'
+            elif k == '/URL':             k = b'url'
+            elif k == '/Subject':         k = b'subject'
+            elif k == '/Keywords':        k = b'keywords'
+            else: continue
+            if type(v) == bytes:
+                v = v.decode('utf-8')
+                if v.startswith('('): v = v[1:]
+                if v.endswith(')'):   v = v[:-1]
+                metadata[k] = v
+        return metadata
     def serialize(self) -> bytes:
         xref = dict()
         embobj = f'\n```\n```{10*" "}\r1 0 obj\r'+\
                  f'<</Length {len(gemini)}>>\rstream\n'+\
                  gemini + f'\n\nendstream\nendobj'
         result = f'%PDF-1.6\n{magic_line}{embobj}\n'.encode('utf-8')
-        for objnum, obj in self._objects:
+        for objnum, obj in self._objects.items():
             xref[objnum] = len(result)
             result += obj.serialize()
         startxref = len(result); result += b'xref\n'
@@ -294,13 +326,14 @@ def is_gemdoc_pdf(doc: str) -> bool:
     else:
         return True
 
-def extract_gemini_part(doc: str) -> str:
+def extract_gemini_part(doc: str) -> tuple[str,dict]:
+    metadata = GemdocPDF('', doc.encode('utf-8')).get_metadata()
     start = doc.index('stream\n') + 7
     end = doc.index('\nendstream\nendobj\n', start)
     doc = doc[start:end]
     # strip a single additional newline added in by gemdoc itself
     if doc.endswith('\n'): doc = doc[:-1]
-    return doc
+    return doc, metadata
 
 def parse_magic_lines(doc: str) -> tuple[str,dict]:
     metadata = dict(); body = list()
@@ -715,9 +748,11 @@ if __name__ == "__main__":
         exit(1)
 
     if input_type == 'local':
-        if is_gemdoc_pdf(doc): doc = extract_gemini_part(doc)
+        if is_gemdoc_pdf(doc): doc, pdf_metadata = extract_gemini_part(doc)
         doc, new_metadata = parse_magic_lines(doc)
         for k, v in new_metadata:
+            if k not in metadata: metadata[k] = v
+        for k, v in pdf_metadata:
             if k not in metadata: metadata[k] = v
 
     elif input_type == 'remote':
@@ -739,5 +774,7 @@ if __name__ == "__main__":
     html = HTML(string=html)
     pdf = BytesIO()
     html.write_pdf(pdf, stylesheets=css)
-    pdf.seek(0); write_output(GemdocPDF(gemini, pdf.read()).serialize())
+    pdf.seek(0); polyglot = GemdocPDF(gemini, pdf.read())
+    polyglot.set_metadata(metadata)
+    write_output(polyglot.serialize())
     if in_place: os.rename(output, args[0])
