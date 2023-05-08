@@ -763,7 +763,7 @@ if __name__ == "__main__":
         exit(1)
     elif args[0] == '-':
         doc = sys.stdin.read(); input_type = 'local'
-    elif not args[0].startswith('gemini://') and os.path.isfile(args[0]):
+    elif not args[0].startswith('gemini://') and os.path.exists(args[0]):
         with open(args[0]) as f:
             doc = f.read(); input_type = 'local'
     elif args[0].startswith('gemini://') or \
