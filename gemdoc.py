@@ -230,14 +230,15 @@ class GemdocPDF():
         self._trailer = b''
         while binary:
             if binary.startswith(b'\nxref'):
-                break
+                s, e = binary.find(b'\ntrailer'), binary.find(b'\nstartxref')
+                self._trailer = binary[s+1:e]
+                eof = binary.find(b'%%EOF')
+                binary = binary[eof+len(b'%%EOF'):] if eof > -1 else b''
             else:
                 binary = self._discard_pre_obj(binary)
                 if not binary: break
                 objnum, obj, binary = self._consume_obj(binary)
                 self._objects.append((objnum, GemdocPDFObject(obj)))
-            s, e = binary.find(b'\ntrailer'), binary.find(b'\nstartxref')
-            self._trailer = binary[s+1:e]
     def serialize(self) -> bytes:
         xref = dict()
         embobj = f'\n```\n```{10*" "}\r1 0 obj\r'+\
