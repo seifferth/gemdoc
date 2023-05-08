@@ -288,12 +288,12 @@ class GemdocPDF():
     def get_metadata(self):
         metadata = dict()
         for k, v in self._info_dict().items():
-            if   k == '/Author':          k = 'author'
-            elif k == '/Title':           k = b'title'
-            elif k == '/PublishingDate':  k = b'date'
-            elif k == '/URL':             k = b'url'
-            elif k == '/Subject':         k = b'subject'
-            elif k == '/Keywords':        k = b'keywords'
+            if   k == b'/Author':          k = 'author'
+            elif k == b'/Title':           k = 'title'
+            elif k == b'/PublishingDate':  k = 'date'
+            elif k == b'/URL':             k = 'url'
+            elif k == b'/Subject':         k = 'subject'
+            elif k == b'/Keywords':        k = 'keywords'
             else: continue
             if type(v) == bytes:
                 v = v.decode('utf-8')
@@ -357,7 +357,7 @@ def is_gemdoc_pdf(doc: str) -> bool:
         return True
 
 def extract_gemini_part(doc: str) -> tuple[str,dict]:
-    metadata = GemdocPDF('', doc.encode('utf-8')).get_metadata()
+    metadata = GemdocPDF(None, doc.encode('utf-8')).get_metadata()
     start = doc.index('stream\n') + 7
     end = doc.index('\nendstream\nendobj\n', start)
     doc = doc[start:end]
@@ -782,7 +782,7 @@ if __name__ == "__main__":
         doc, new_metadata = parse_magic_lines(doc)
         for k, v in new_metadata:
             if k not in metadata: metadata[k] = v
-        for k, v in pdf_metadata:
+        for k, v in pdf_metadata.items():
             if k not in metadata: metadata[k] = v
 
     elif input_type == 'remote':
