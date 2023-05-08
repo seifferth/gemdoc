@@ -229,7 +229,8 @@ class GemdocPDF():
         endobj = binary.find(b'endobj')+len(b'endobj')
         if endobj == -1: raise Exception('Missing endobj keyword')
         return objnum, binary[:endobj]+b'\n', binary[endobj:]
-    def __init__(self, gemini: str, binary: Union[bytes,str]):
+    def __init__(self, gemini: str, binary: Union[bytes,str],
+                 gemini_filename='source.gmi'):
         if type(binary) == str: binary = binary.encode('utf-8')
         self._gemini = gemini
         self._objects = dict()
@@ -247,6 +248,27 @@ class GemdocPDF():
                 if not binary: break
                 objnum, obj, binary = self._consume_obj(binary)
                 self._objects[objnum] = GemdocPDFObject(obj)
+        if gemini != None:
+            self._gemini_objnum = max(self._objects.keys())+1
+            self._make_attachment(self._gemini_objnum, gemini_filename)
+    def _make_attachment(self, gemini_objnum, gemini_filename):
+        root_ref = self._trailer.dictionary.get(b'/Root')
+        root_objnum = int(root_ref.decode('ascii').split()[0])
+        root = self._objects[root_objnum].dictionary
+        filespec_objnum = gemini_objnum + 1
+        filespec = GemdocPDFObject(
+                    (f'{filespec_objnum} 0 obj\n'
+                     '<</Type/Filespec'
+                      f'/F({gemini_filename})'
+                      f'/EF<</F {gemini_objnum} 0 R>>'
+                    f'>>\nendobj\n').encode('utf-8')
+                   )
+        self._objects[filespec_objnum] = filespec
+        fileref = f'{gemini_objnum} 0 R'.encode('ascii')
+        root[b'/Names'] = {b'/EmbeddedFiles': {b'/Names': [
+                              f'({gemini_filename})'.encode('utf-8'),
+                              f'{filespec_objnum} 0 R'.encode('ascii'),
+                          ]}}
     def _info_dict(self):
         info_ref = self._trailer.dictionary.get(b'/Info')
         info_objnum = int(info_ref.decode('ascii').split()[0])
@@ -281,13 +303,17 @@ class GemdocPDF():
         return metadata
     def serialize(self) -> bytes:
         xref = dict()
-        gemini_objnum = max(self._objects.keys())+1
-        result = f'%PDF-1.6\n{magic_line}\n```\n```{10*" "}\r'\
+        if self._gemini != None:
+            result = f'%PDF-1.6\n{magic_line}\n```\n```\r'.encode('utf-8')
+            xref[self._gemini_objnum] = len(result)
+            result += (f'{self._gemini_objnum} 0 obj\r'
+                        '<</Type/EmbeddedFile/Params'
+                            f'<</Size {len(self._gemini)}>>'
+                         f'/Length {len(self._gemini)}>>\rstream\n'
+                       f'{self._gemini}\n\nendstream\nendobj\n') \
                                                             .encode('utf-8')
-        xref[gemini_objnum] = len(result)
-        result += (f'{gemini_objnum} 0 obj\r<</Length {len(gemini)}>>'
-                   f'\rstream\n{gemini}\n\nendstream\nendobj\n') \
-                                                            .encode('utf-8')
+        else:
+            result = f'%PDF-1.6\n%¶🗎\ufe0e\n'.encode('utf-8')
         for objnum, obj in self._objects.items():
             xref[objnum] = len(result)
             result += obj.serialize()
