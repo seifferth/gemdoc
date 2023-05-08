@@ -172,9 +172,9 @@ class GemdocPDFObject():
     def __init__(self, binary: bytes):
         binary, self._objnum = self._consume_objnum(binary)
         if binary.startswith(b'<<'):
-            binary, self._dictionary = self._consume_dictionary(binary)
+            binary, self.dictionary = self._consume_dictionary(binary)
         else:
-            self._dictionary = dict()
+            self.dictionary = dict()
         binary = self._consume_whitespace(binary)
         if binary.startswith(b'stream\n'):
             endstream = binary.find(b'endstream')
@@ -187,7 +187,7 @@ class GemdocPDFObject():
             self._contents = binary[:endobj]
             self._stream = None
     def serialize(self) -> bytes:
-        dictionary = deepcopy(self._dictionary)
+        dictionary = deepcopy(self.dictionary)
         flist = dictionary.get(b'/Filter', [])
         if type(flist) == bytes: flist = [flist]
         if self._stream != None:
