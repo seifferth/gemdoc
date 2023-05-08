@@ -188,7 +188,7 @@ class GemdocPDFObject():
             self._stream = None
     def serialize(self) -> bytes:
         dictionary = deepcopy(self.dictionary)
-        flist = dictionary.get(b'/Filter', [])
+        flist = dictionary.pop(b'/Filter', [])
         if type(flist) == bytes: flist = [flist]
         if self._stream != None:
             binary = (b'\nstream\n' +
@@ -197,7 +197,8 @@ class GemdocPDFObject():
             flist.insert(0, b'/ASCII85Decode')
         else:
             binary = self._contents
-        dictionary[b'/Filter'] = flist[0] if len(flist) == 1 else flist
+        if flist:
+            dictionary[b'/Filter'] = flist[0] if len(flist) == 1 else flist
         if b'/Length' in dictionary:
             dictionary[b'/Length'] = str(len(binary)).encode('ascii')
         binary = self._objnum + b'\n' + \
