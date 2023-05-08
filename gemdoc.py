@@ -265,8 +265,6 @@ class GemdocPDF():
         result += self._trailer + b'\n'
         result += f'startxref\n{startxref}\n%%EOF\n'.encode('ascii')
         return result
-def make_polyglot(gemini: str, pdf: bytes) -> str:
-    return GemdocPDF(gemini, pdf).serialize()
 
 
 class GemdocParserException(Exception):
@@ -732,5 +730,5 @@ if __name__ == "__main__":
     html = HTML(string=html)
     pdf = BytesIO()
     html.write_pdf(pdf, stylesheets=css)
-    pdf.seek(0); write_output(make_polyglot(gemini, pdf.read()))
+    pdf.seek(0); write_output(GemdocPDF(gemini, pdf.read()).serialize())
     if in_place: os.rename(output, args[0])
