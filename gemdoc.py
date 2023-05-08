@@ -270,6 +270,8 @@ class GemdocPDF():
                               f'({gemini_filename})'.encode('utf-8'),
                               f'{filespec_objnum} 0 R'.encode('ascii'),
                           ]}}
+        new_size = str(filespec_objnum+1).encode('ascii')
+        self._trailer.dictionary[b'/Size'] = new_size
     def _info_dict(self):
         info_ref = self._trailer.dictionary.get(b'/Info')
         info_objnum = int(info_ref.decode('ascii').split()[0])
