@@ -804,7 +804,13 @@ if __name__ == "__main__":
     html = HTML(string=html)
     pdf = BytesIO()
     html.write_pdf(pdf, stylesheets=css)
-    pdf.seek(0); polyglot = GemdocPDF(gemini, pdf.read())
+    gemini_filename = 'source.gmi'
+    if 'url' in metadata:
+        _scheme, _netloc, path, *_ = urlparse(metadata['url'])
+        if path:
+            gemini_filename = path.split('/')[-1]
+    pdf.seek(0); polyglot = GemdocPDF(gemini, pdf.read(),
+                                      gemini_filename=gemini_filename)
     polyglot.set_metadata(metadata)
     write_output(polyglot.serialize())
     if in_place: os.rename(output, args[0])
