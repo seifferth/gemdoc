@@ -806,6 +806,10 @@ if __name__ == "__main__":
             print('The -i flag can only be used for local inputs',
                   file=sys.stderr)
             exit(1)
+        elif no_convert:
+            print('The -i flag cannot be combined with the --no-convert '
+                  'option', file=sys.stderr)
+            exit(1)
         elif not os.path.isfile(args[0]) or os.path.islink(args[0]):
             print(f'Cannot modify \'{args[0]}\' in place: Not a regular '
                    'file', file=sys.stderr)
