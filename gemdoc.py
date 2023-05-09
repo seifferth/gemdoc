@@ -413,6 +413,8 @@ def parse_gemini(doc: str, metadata: dict) -> tuple[str,str]:
                     metadata['title'] = f'{title}: {subtitle}'
                 elif title:
                     metadata['title'] = title
+                metadata['title'] = ''.join((c if c.isascii() else '_'
+                                             for c in metadata['title']))
             else:
                 add(doc[i][2:], tag='h1')
             i += 1
