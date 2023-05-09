@@ -193,6 +193,9 @@ class GemdocPDFObject():
         if type(flist) == bytes: flist = [flist]
         if self._stream != None:
             stream = base64.a85encode(self._stream)+b'~>'
+            # Space-stuff stream if it could be mistaken for a
+            # gemini preformatting toggle off line
+            if stream.startswith(b'```'): stream = b' '+stream
             binary = (b'\rstream\n' + stream + b'\rendstream\r')
             flist.insert(0, b'/ASCII85Decode')
         else:
