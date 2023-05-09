@@ -392,6 +392,19 @@ def parse_gemini(doc: str, metadata: dict) -> tuple[str,str]:
             body.append(f'<{tag}>{html_escape(line)}</{tag}>')
         else:
             body.append(html_escape(line))
+    def add_empty_lines(i: int) -> int:
+        """
+        'i' is the index of the last, possibly non-empty line preceding
+        the block of empty lines that shall be parsed. It is _not_ the
+        index of the first empty line. The return value is the index of
+        the last empty line, or the same as the input value if there are
+        no empty lines. Note that this function appends empty lines to
+        the html body.
+        """
+        i += 1
+        while i < len(doc) and not doc[i].strip():
+            body.append('<br />'); i += 1
+        return i-1
     doc = doc.splitlines(); i = 0
     while i < len(doc):
         if preformatted and doc[i].startswith('```'):
@@ -405,6 +418,7 @@ def parse_gemini(doc: str, metadata: dict) -> tuple[str,str]:
             if not got_title:
                 got_title = True; title = doc[i][2:].strip()
                 add(title, tag='h1', css_class='title')
+                i = add_empty_lines(i)
                 if doc[i+1].startswith('## '):
                     i += 1; subtitle = doc[i][3:].strip()
                     add(subtitle, tag='h2', css_class='subtitle')
@@ -418,28 +432,20 @@ def parse_gemini(doc: str, metadata: dict) -> tuple[str,str]:
                     metadata['title'] = title
                 metadata['title'] = ''.join((c if c.isascii() else '_'
                                              for c in metadata['title']))
+                i = add_empty_lines(i)
             else:
                 add(doc[i][2:], tag='h1')
-            i += 1
-            while i < len(doc) and not doc[i].strip():
-                body.append('<br />'); i += 1
-            i -= 1
+                i = add_empty_lines(i)
             body.append('</div>')
         elif doc[i].startswith('## '):
             body.append('<div class="headingcontext">')
             add(doc[i][3:], tag='h2')
-            i += 1
-            while i < len(doc) and not doc[i].strip():
-                body.append('<br />'); i += 1
-            i -= 1
+            i = add_empty_lines(i)
             body.append('</div>')
         elif doc[i].startswith('### '):
             body.append('<div class="headingcontext">')
             add(doc[i][4:], tag='h3')
-            i += 1
-            while i < len(doc) and not doc[i].strip():
-                body.append('<br />'); i += 1
-            i -= 1
+            i = add_empty_lines(i)
             body.append('</div>')
         elif doc[i].startswith('>'):
             add(doc[i][1:], tag='blockquote')
