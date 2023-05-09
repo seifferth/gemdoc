@@ -806,7 +806,11 @@ if __name__ == "__main__":
                'no such file on the local system either.', file=sys.stderr)
         exit(1)
 
-    if in_place:
+    if no_convert and input_type == 'local':
+        print('The --no-convert option can only be used with remote inputs',
+              file=sys.stderr)
+        exit(1)
+    elif in_place:
         if o_flag:
             print('The -o and -i flags are mutually exclusive',
                   file=sys.stderr)
@@ -814,10 +818,6 @@ if __name__ == "__main__":
         elif input_type != 'local':
             print('The -i flag can only be used for local inputs',
                   file=sys.stderr)
-            exit(1)
-        elif no_convert:
-            print('The -i flag cannot be combined with the --no-convert '
-                  'option', file=sys.stderr)
             exit(1)
         elif not os.path.isfile(args[0]) or os.path.islink(args[0]):
             print(f'Cannot modify \'{args[0]}\' in place: Not a regular '
