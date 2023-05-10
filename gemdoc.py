@@ -472,8 +472,8 @@ def parse_gemini(doc: str, metadata: dict) -> tuple[str,str]:
                 scheme, *_= urlparse(link)
                 doc[i] = f'=> {link}{"  " if label else ""}{label}'
             css_class = scheme
-            if not label: label = html_escape(link)
-            if link == label:
+            if not label:
+                label = html_escape(link)
                 css_class += (' ' if css_class else '') + '_nolabel'
             body.append(f'<p><a href="{link}" class="{css_class}">'
                         f'{html_escape(label)}</a></p>')
