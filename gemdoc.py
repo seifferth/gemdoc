@@ -490,7 +490,7 @@ def parse_gemini(doc: str, metadata: dict) -> tuple[str,str]:
             metadata['author'] = path[2:].split('/')[0]
         if 'date' not in metadata:
             possible_date = re.match(
-                r'^([0-9]{4})[-/]?([0-9]{2})[-/]?([0-9]{2})([^0-9].*)$',
+                r'^([0-9]{4})[-/_]?([0-9]{2})[-/_]?([0-9]{2})([^0-9].*)$',
                 path.split('/')[-1]
             )
             if possible_date:
