@@ -457,6 +457,7 @@ def parse_gemini(doc: str, metadata: dict) -> tuple[str,str]:
             i -= 1; body.append('</ul>')
         elif doc[i].startswith('=>'):
             link, *label = doc[i][2:].lstrip().split(maxsplit=1)
+            label = label[0] if label else ''
             if 'url' not in metadata and link.startswith('//'):
                 link = 'gemini:' + link
                 doc[i] = f'=> {link}{"  " if label else ""}{label}'
@@ -471,7 +472,7 @@ def parse_gemini(doc: str, metadata: dict) -> tuple[str,str]:
                 scheme, *_= urlparse(link)
                 doc[i] = f'=> {link}{"  " if label else ""}{label}'
             css_class = scheme
-            label = label[0] if label else html_escape(link)
+            if not label: label = html_escape(link)
             if link == label:
                 css_class += (' ' if css_class else '') + '_nolabel'
             body.append(f'<p><a href="{link}" class="{css_class}">'
