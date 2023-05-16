@@ -46,7 +46,9 @@ def retrieve_url(url: str, max_redirects=10) -> tuple[str,str,Union[str,bytes]]:
             # I need to call recv multiple times to fetch the whole status
             # line.
             while len(response) < 1029:
+                lastlen = len(response)
                 response += ssock.recv(1029-len(response))
+                if len(response) == lastlen: break
             if b'\r\n' not in response:
                 raise GemdocClientException('Server response too long')
             header, rest = response.split(b'\r\n', maxsplit=1)
