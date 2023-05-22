@@ -21,7 +21,8 @@ magic_line = '%♊\ufe0e🗎\ufe0e'
 class GemdocClientException(Exception):
     pass
 
-def retrieve_url(url: str, max_redirects=10) -> tuple[str,str,Union[str,bytes]]:
+def retrieve_url(url: str, max_redirects=10) -> \
+                                        tuple[str,str,Union[str,bytes]]:
     """
     Returns a tuple of type (url, content), where url is possibly
     different from the one supplied as an argument if there have been
@@ -91,7 +92,8 @@ class GemdocPDFObject():
             raise Exception('No object at the start of '+str(binary[:10]))
         objnum = '{} {} obj'.format(*[x.decode('ascii') for x in m.groups()])
         return binary[m.end():], objnum.encode('ascii')
-    def _consume_list(self, binary: bytes, delim=(b'[',b']')) -> tuple[bytes,dict]:
+    def _consume_list(self, binary: bytes, delim=(b'[',b']')) -> \
+                                                        tuple[bytes,dict]:
         binary = self._consume_whitespace(binary)
         if not binary.startswith(delim[0]):
             raise Exception('Expected '+str(delim[0])+' at the start of '\
@@ -230,8 +232,8 @@ class GemdocPDF():
         m = re.match(rb'\s*(\d+)\s+(\d+)\s+obj', binary)
         main, sub = m.groups()
         if sub != b'0':
-            raise Exception('Object revisions not implemented. Unable to parse '\
-                            +str(binary[:20]))
+            raise Exception('Object revisions not implemented. '\
+                            'Unable to parse '+str(binary[:20]))
         objnum = int(main.decode('ascii'))
         endobj = binary.find(b'endobj')+len(b'endobj')
         if endobj == -1: raise Exception('Missing endobj keyword')
