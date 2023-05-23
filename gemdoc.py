@@ -850,7 +850,7 @@ if __name__ == "__main__":
         else:
             pdf_metadata = dict()
         doc, new_metadata = parse_magic_lines(doc)
-        for k, v in new_metadata:
+        for k, v in new_metadata.items():
             if k not in metadata: metadata[k] = v
         for k, v in pdf_metadata.items():
             if k not in metadata: metadata[k] = v
