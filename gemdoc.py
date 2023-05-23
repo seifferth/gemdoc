@@ -839,12 +839,12 @@ if __name__ == "__main__":
         err(f'Unable to read css file. {e}')
 
     if input_type == 'local':
+        doc, gemdoc_metadata = parse_magic_lines(doc)
         if is_gemdoc_pdf(doc):
             doc, pdf_metadata = extract_gemini_part(doc)
         else:
             pdf_metadata = dict()
-        doc, new_metadata = parse_magic_lines(doc)
-        for k, v in new_metadata.items():
+        for k, v in gemdoc_metadata.items():
             if k not in metadata: metadata[k] = v
         for k, v in pdf_metadata.items():
             if k not in metadata: metadata[k] = v
