@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import sys, os, tempfile
-import re, base64
+import re, base64, textwrap
 import socket, ssl
 from typing import Union
 from io import BytesIO
@@ -16,6 +16,12 @@ from copy import deepcopy
 
 
 magic_line = '%♊\ufe0e🗎\ufe0e'
+
+
+def warn(msg: str):
+    print(textwrap.fill(msg), file=sys.stderr)
+def err(msg: str):
+    warn(msg); exit(1)
 
 
 class GemdocClientException(Exception):
@@ -58,7 +64,7 @@ def retrieve_url(url: str, max_redirects=10) -> \
                 raise GemdocClientException('Invalid response from server')
             if header.startswith('3'):
                 dest = header[3:]
-                print(f"Following redirect to '{dest}'", file=sys.stderr)
+                warn(f"Following redirect to '{dest}'")
                 return retrieve_url(dest, max_redirects=max_redirects-1)
             elif header.startswith('2'):
                 mime_type, *params = header[3:].split(';')
@@ -765,9 +771,8 @@ if __name__ == "__main__":
             stylesheets.append(v)
         elif k == '--print-default-css':
             if args:
-                print('The --print-default-css option cannot be combined '
-                      'with positional arguments', file=sys.stderr)
-                exit(1)
+                err('The --print-default-css option cannot be combined '
+                    'with positional arguments')
             print_default_css = True
 
     def write_output(doc: Union[str,bytes]):
@@ -791,10 +796,9 @@ if __name__ == "__main__":
     if print_default_css:
         write_output(_default_css); exit(0)
     elif len(args) != 1:
-        print('Gemdoc takes exactly one positional argument but got '
-             f'{len(args)}. To force reading data from stdin, specify '
-              'a single dash \'-\' as the input file.', file=sys.stderr)
-        exit(1)
+        err('Gemdoc takes exactly one positional argument but got '
+           f'{len(args)}. To force reading data from stdin, specify '
+            'a single dash \'-\' as the input file.')
     elif args[0] == '-':
         doc = sys.stdin.read(); input_type = 'local'
     elif not args[0].startswith('gemini://') and os.path.exists(args[0]):
@@ -807,27 +811,18 @@ if __name__ == "__main__":
         url, mime_type, doc = retrieve_url(args[0]); input_type = 'remote'
         if 'url' not in metadata: metadata['url'] = url
     else:
-        print(f"'{args[0]}' does not seem to be a gemini url and there is "
-               'no such file on the local system either.', file=sys.stderr)
-        exit(1)
+        err(f"'{args[0]}' does not seem to be a gemini url and there is "
+             'no such file on the local system either.')
 
     if no_convert and input_type == 'local':
-        print('The --no-convert option can only be used with remote inputs',
-              file=sys.stderr)
-        exit(1)
+        err('The --no-convert option can only be used with remote inputs')
     elif in_place:
         if o_flag:
-            print('The -o and -i flags are mutually exclusive',
-                  file=sys.stderr)
-            exit(1)
+            err('The -o and -i flags are mutually exclusive')
         elif input_type != 'local':
-            print('The -i flag can only be used for local inputs',
-                  file=sys.stderr)
-            exit(1)
+            err('The -i flag can only be used for local inputs')
         elif not os.path.isfile(args[0]) or os.path.islink(args[0]):
-            print(f'Cannot modify \'{args[0]}\' in place: Not a regular '
-                   'file', file=sys.stderr)
-            exit(1)
+            err(f'Cannot modify \'{args[0]}\' in place: Not a regular file')
         else:
             output = tempfile.mktemp(
                 dir = os.path.dirname(args[0]),
@@ -841,8 +836,7 @@ if __name__ == "__main__":
             with open(s) as f:
                 css.append(CSS(string=f.read()))
     except Exception as e:
-        print(f'Unable to read css file. {e}', file=sys.stderr)
-        exit(1)
+        err(f'Unable to read css file. {e}')
 
     if input_type == 'local':
         if is_gemdoc_pdf(doc):
@@ -868,10 +862,9 @@ if __name__ == "__main__":
         else:
             if not re.search(r'[^\.]\.[^\.]+$', output):
                 output += guess_extension(mime_type, strict=False) or ''
-            print(f'Writing non pdf file to {output}. The file\'s mime type '
-                  f'was reported to be \'{mime_type}\'', file=sys.stderr)
+            warn(f'Writing non pdf file to {output}. The file\'s mime type '
+                 f'was reported to be \'{mime_type}\'')
             write_output(doc)
-            exit(0)
 
     # Ensure that all metadata is valid ascii; possibly dropping characters
     for k, v in metadata.items():
@@ -886,15 +879,13 @@ if __name__ == "__main__":
             # calling it twice early on should help me spot errors
             # earlier in the process.
             if v != metadata[k]:
-                print(f'Warning: Non-ascii characters in the url field have '
-                       'been escaped by percent-encoding them',
-                      file=sys.stderr)
+                warn(f'Warning: Non-ascii characters in the url field have '
+                      'been escaped by percent-encoding them')
         else:
             v = ''.join((c if c.isascii() else '_' for c in v))
             if v != metadata[k]:
-                print(f'Warning: Non-unicode characters in the {k} field '
-                       'have been replaced with underscores',
-                      file=sys.stderr)
+                warn(f'Warning: Non-unicode characters in the {k} field '
+                      'have been replaced with underscores')
         _ = v.encode('ascii') # Raise exception if encoding as ascii fails
         metadata[k] = v
     gemini_filename = 'source.gmi'
@@ -906,23 +897,23 @@ if __name__ == "__main__":
                 gemini_filename = urlunquote(gemini_filename)
                 gemini_filename = ''.join((c if c.isascii() else '_'
                                              for c in gemini_filename))
-                print(f'Warning: Non-unicode characters in the filename '
-                       'for the embedded source file have been replaced '
-                       'with underscores', file=sys.stderr)
+                warn(f'Warning: Non-unicode characters in the filename '
+                      'for the embedded source file have been replaced '
+                      'with underscores')
                 _ = gemini_filename.encode('ascii')
             if not re.search(r'[^\.]\.[^\.]', gemini_filename):
                 gemini_filename = gemini_filename+'.gmi'
 
     if 'endstream' in doc:
         doc = doc.replace('endstream', 'e\u200bndstream')
-        print('Warning: Occurrences of the \'endstream\' keyword have been '
-              'escaped by inserting a zero width space after the first '
-              'character', file=sys.stderr)
+        warn('Warning: Occurrences of the \'endstream\' keyword have been '
+             'escaped by inserting a zero width space after the first '
+             'character')
     if 'endobj' in doc:
         doc = doc.replace('endobj', 'e\u200bndobj')
-        print('Warning: Occurrences of the \'endobj\' keyword have been '
-              'escaped by inserting a zero width space after the first '
-              'character', file=sys.stderr)
+        warn('Warning: Occurrences of the \'endobj\' keyword have been '
+             'escaped by inserting a zero width space after the first '
+             'character')
 
     gemini, html = parse_gemini(doc, metadata)
     html = HTML(string=html)
