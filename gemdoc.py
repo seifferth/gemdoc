@@ -490,7 +490,7 @@ def parse_gemini(doc: str, metadata: dict) -> tuple[str,str]:
             if not label:
                 label = html_escape(link)
                 css_class += (' ' if css_class else '') + '_nolabel'
-            body.append(f'<p><a href="{link}" class="{css_class}">'
+            body.append(f'<p class="a"><a href="{link}" class="{css_class}">'
                         f'{html_escape(label)}</a></p>')
         elif not doc[i].strip():
             body.append('<br />')
