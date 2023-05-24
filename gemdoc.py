@@ -36,7 +36,7 @@ def retrieve_url(url: str, max_redirects=10) -> \
     """
     if max_redirects <= 0:
         raise GemdocClientException('Maximum number of redirects exceeded')
-    scheme, host, *_ = urlparse(url); port = 1965
+    scheme, host, path, *_ = urlparse(url); port = 1965
     content = list()
     if scheme != 'gemini':
         raise GemdocClientException(f'Unsupported url scheme {scheme}')
@@ -64,6 +64,11 @@ def retrieve_url(url: str, max_redirects=10) -> \
                 raise GemdocClientException('Invalid response from server')
             if header.startswith('3'):
                 dest = header[3:]
+                destscheme, desthost, *_ = urlparse(dest)
+                if destscheme: pass
+                elif dest.startswith('//'): dest = f'gemini:{dest}'
+                elif dest.startswith('/'): dest = f'gemini://{host}{dest}'
+                else: dest = 'gemini:'+urljoin(f'//{host}{path}', dest)
                 warn(f"Following redirect to '{dest}'")
                 return retrieve_url(dest, max_redirects=max_redirects-1)
             elif header.startswith('2'):
