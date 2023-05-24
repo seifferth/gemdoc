@@ -715,6 +715,17 @@ colophon {
 */
 """.lstrip()
 
+_minimal_css = """
+a {
+    color: inherit;
+    text-decoration: none;
+}
+div.headingcontext {
+    page-break-inside: avoid;
+    page-break-after: avoid;
+}
+""".lstrip()
+
 
 _cli_help = """
 Usage: gemdoc [OPTION]... FILE
@@ -747,14 +758,9 @@ Options
                             pdf metadata will be preserved.
   --css FILE                Use the specified css stylesheet to style the
                             document. This option may be passed multiple
-                            times to use multiple css files. User-specified
-                            stylesheets are always applied on top of the
-                            default stylesheet built into gemdoc itself.
-                            This provides a convenient way to only adjust
-                            parts of that stylesheet. If you want to not
-                            use the default stylesheet at all, make sure
-                            to override all the selectors present in that
-                            stylesheet.
+                            times to use multiple css files. If at least
+                            one user-specified stylesheet is specified, the
+                            default stylesheet will not be applied.
   --print-default-css       Print the default stylesheet to stdout or to
                             the file specified via --output.
   -h, --help                Print this help message and exit.
@@ -846,13 +852,14 @@ if __name__ == "__main__":
             )
 
     from weasyprint import HTML, CSS
-    css = [CSS(string=_default_css)]
+    css = [CSS(string=_minimal_css)]
     try:
         for s in stylesheets:
             with open(s) as f:
                 css.append(CSS(string=f.read()))
     except Exception as e:
         err(f'Unable to read css file. {e}')
+    if not stylesheets: css.append(CSS(string=_default_css))
 
     if input_type == 'local':
         doc, gemdoc_metadata = parse_magic_lines(doc)
