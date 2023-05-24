@@ -399,14 +399,10 @@ def parse_magic_lines(doc: str) -> tuple[str,dict]:
 
 def parse_gemini(doc: str, metadata: dict) -> tuple[str,str]:
     body = list(); got_title = False; preformatted = False
-    _document_url = metadata.get('url', '')
-    if _document_url == None:
-        _site_url = ''
-    else:
-        _, _site_url_host, *_ = urlparse(_document_url)
+    _, site_host, *_ = urlparse(metadata.get('url', ''))
     def is_site_relative(link: str) -> bool:
-        _, _link_url_host, *_ = urlparse(link)
-        return _link_url_host == _site_url_host
+        _, link_host, *_ = urlparse(link)
+        return link_host == site_host
     def add(line, tag='p', css_class=None) -> None:
         if tag and css_class:
             body.append(f'<{tag} class="{css_class}">'
