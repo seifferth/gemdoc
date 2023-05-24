@@ -403,11 +403,10 @@ def parse_gemini(doc: str, metadata: dict) -> tuple[str,str]:
     if _document_url == None:
         _site_url = ''
     else:
-        _site_url_scheme, _site_url_host, *_ = urlparse(_document_url)
+        _, _site_url_host, *_ = urlparse(_document_url)
     def is_site_relative(link: str) -> bool:
-        _link_url_scheme, _link_url_host, *_ = urlparse(link)
-        return _link_url_scheme == _site_url_scheme and \
-               _link_url_host == _site_url_host
+        _, _link_url_host, *_ = urlparse(link)
+        return _link_url_host == _site_url_host
     def add(line, tag='p', css_class=None) -> None:
         if tag and css_class:
             body.append(f'<{tag} class="{css_class}">'
