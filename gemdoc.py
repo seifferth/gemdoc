@@ -543,13 +543,20 @@ def parse_gemini(doc: str, metadata: dict) -> tuple[str,str]:
     return gemini, html
 
 _default_css = """
-/* This style is based on Ayu Light from the amfora contrib/themes
-   directory available at https://github.com/makew0rld/amfora/ */
+/* Loosely based on the stylesheet behind https://gmi.skyjake.fi/lagrange/ */
 
 /*** Text ***/
+html {
+    /* Default background and foreground colour */
+    background: #fff;
+    color: rgb(26, 24, 0);
+}
 body {
     /* General settings such as the main font to use */
-    font-family: DejaVu Sans, sans serif;
+    font-family: Roboto, sans serif;
+    font-weight: 400;
+    font-size: 15pt;
+    line-height: 140%;
     text-align: justify;
 }
 p {
@@ -558,7 +565,6 @@ p {
        links are also wrapped in 'p' tags, so the settings specified
        here also apply to those if they are not overridden further
        below. */
-    color: #5c6166;
 
     /* Note that a single <br /> tag is inserted for every blank line
        in the text/gemini source file. This should be taken into account
@@ -567,25 +573,43 @@ p {
 }
 
 /*** Links ***/
+p.a {
+    /* Paragraphs containing links (i. e. a single link per paragraph) */
+    margin-left: 20pt;
+    text-align: left;
+}
 a {
     /* Default styling for links */
-    text-decoration: none;
-    color: #a37acc;
+    font-weight: 600;
+}
+a::before {
+    content: '🌐︎';
+    margin-left: -20pt;
+    display: inline-block;
+    width: 20pt;
+    color: rgb(210, 120, 10);
+}
+a._internal::before {
+    /* The _internal class describes links that lead to the same site
+    that has been specified as the page footer */
+    content: '➤';
 }
 a::after {
     /* Insert the url in brackets after the link label */
+    font-weight: 400;
     content: ' ('attr(href)')';
 }
 /* The _nolabel class describes links where no human-readable label is
    provided. In these cases, the content and the href of the a tag are
    the same. In order to not print the same url twice, the automated
    printing of the parenthesized url is disabled for those links. */
-a._nolabel::before { content: ''; }
 a._nolabel::after { content: ''; }
 
 a.gemini {
     /* Styling for links to gemini:// urls */
-    color: #399ee6;
+}
+a.gemini::before {
+    color: rgb(10, 110, 130);
 }
 a.gopher {
     /* Styling for links to gopher:// urls */
@@ -600,23 +624,37 @@ a.mailto {
 
 /*** Headings ***/
 h1 {
-    color: #fa8d3e;
-    margin: 0;
+    font-size: 200%;
+    font-weight: 700;
+    color: rgb(160, 130, 0);
+    line-height: 120%;
+    margin-top: 1ex;
+    margin-bottom: 1ex;
     text-align: left;
 }
-h1::before { content: '# '; }
 h2 {
-    color: #f2ae49;
-    margin: 0;
+    font-size: 167%;
+    font-weight: 400;
+    color: rgb(76, 122, 51);
+    line-height: 120%;
+    margin-top: 1ex;
+    margin-bottom: 1ex;
     text-align: left;
 }
-h2::before { content: '## '; }
 h3 {
-    color: #f2ae49;
+    font-size: 133%;
+    font-weight: 700;
+    color: rgb(0, 102, 102);
     margin: 0;
     text-align: left;
 }
+/* To show the octothorpes in front of headings, uncomment the following
+   three lines */
+/*
+h1::before { content: '# '; }
+h2::before { content: '## '; }
 h3::before { content: '### '; }
+*/
 
 h1.title {
     /* The first heading that serves as a document title */
@@ -624,49 +662,65 @@ h1.title {
 h2.subtitle {
     /* The heading directly beneath the document title that serves as
        the document subtitle */
-}
-
-div.headingcontext {
-    page-break-inside: avoid;
-    page-break-after: avoid;
+    color: rgb(160, 130, 0);
 }
 
 /*** Lists ***/
 ul {
-    color: #5c6166;
     margin: 0;
-    padding-left: .8em;
+    padding-left: 20pt;
+    list-style: none;
 }
 li {
     margin: 0;
+}
+li::before {
+    content: '•';
+    color: #008080;
+    font-weight: bold;
+    display: inline-block;
+    width: 16pt;
+    margin-left: -16pt;
 }
 
 /*** Blockquotes ***/
 
 blockquote {
-    color: #4cbf99;
-    margin: 0;
+    color: #008080;
+    margin-top: 0;
+    margin-bottom: 0;
+    margin-left: 2.25em;
+    font-style: italic;
+    font-weight: 300;
+    padding-left: 0.75em;
+    border-left: 1px solid #597f7d;
 }
 
 /*** Preformatted text ***/
 
 pre {
-    font-family: DejaVu Sans Mono, monospace;
-    color: #86b300;
-    page-break-inside: avoid;
+    font-family: Fira Mono, monospace;
+    font-size: 90%;
+    line-height: 110%;
     margin: 0;
+    color: #008080;
+    max-width: 100%;
+    overflow: auto;
+    page-break-inside: avoid;
 }
 
 /*** Colophon with additional information ***/
 
 colophon {
-    font-size: 10pt;
-    color: #5c6166;
+    font-size: 80%;
+    line-height: 110%;
+    color: #806000;
 }
 colophon > url > a {
     /* Undo default link styling in colophon */
-    font-size: 10pt;
-    color: #5c6166;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
 }
 colophon > url > a::before { content: ''; }
 colophon > url > a::after { content: ''; }
@@ -682,6 +736,7 @@ colophon > date    { position: running(date);    }
 colophon > urlsep  { position: running(urlsep);  }
 colophon > url     { position: running(url);     }
 @page:first {
+    margin-bottom: 2.5cm;
     @bottom-right {
         content: element(author)
                  element(datesep)   /* The string ', ' if both author
