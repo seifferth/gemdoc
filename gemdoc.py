@@ -575,6 +575,7 @@ p.a {
 }
 a {
     /* Default styling for links */
+    text-decoration: none;
     font-weight: 600;
 }
 a::before {
@@ -768,7 +769,6 @@ colophon {
 _minimal_css = """
 a {
     color: inherit;
-    text-decoration: none;
 }
 div.headingcontext {
     page-break-inside: avoid;
