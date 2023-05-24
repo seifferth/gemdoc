@@ -1,0 +1,165 @@
+/* This style is based on Ayu Light from the amfora contrib/themes
+   directory available at https://github.com/makew0rld/amfora/ */
+
+/*** Text ***/
+body {
+    /* General settings such as the main font to use */
+    font-family: DejaVu Sans, sans serif;
+    text-align: justify;
+}
+p {
+    /* Settings for paragraphs; i. e. for anything that is not a heading,
+       a list, a blockquote, or a block of preformatted text. Note that
+       links are also wrapped in 'p' tags, so the settings specified
+       here also apply to those if they are not overridden further
+       below. */
+    color: #5c6166;
+
+    /* Note that a single <br /> tag is inserted for every blank line
+       in the text/gemini source file. This should be taken into account
+       when specifying margins. */
+    margin: 0;
+}
+
+/*** Links ***/
+a {
+    /* Default styling for links */
+    text-decoration: none;
+    color: #a37acc;
+}
+a::after {
+    /* Insert the url in brackets after the link label */
+    content: ' ('attr(href)')';
+}
+/* The _nolabel class describes links where no human-readable label is
+   provided. In these cases, the content and the href of the a tag are
+   the same. In order to not print the same url twice, the automated
+   printing of the parenthesized url is disabled for those links. */
+a._nolabel::before { content: ''; }
+a._nolabel::after { content: ''; }
+
+a.gemini {
+    /* Styling for links to gemini:// urls */
+    color: #399ee6;
+}
+a.gopher {
+    /* Styling for links to gopher:// urls */
+}
+a.mailto {
+    /* Styling for links to mailto: urls */
+}
+/* Note that these selectors work for any kind of url scheme. There is no
+   need to define special rules for every scheme, though, since the default
+   style defined above will be applied to all urls with schemes that aren't
+   explicitly mentioned in the css file. */
+
+/*** Headings ***/
+h1 {
+    color: #fa8d3e;
+    margin: 0;
+    text-align: left;
+}
+h1::before { content: '# '; }
+h2 {
+    color: #f2ae49;
+    margin: 0;
+    text-align: left;
+}
+h2::before { content: '## '; }
+h3 {
+    color: #f2ae49;
+    margin: 0;
+    text-align: left;
+}
+h3::before { content: '### '; }
+
+h1.title {
+    /* The first heading that serves as a document title */
+}
+h2.subtitle {
+    /* The heading directly beneath the document title that serves as
+       the document subtitle */
+}
+
+/*** Lists ***/
+ul {
+    color: #5c6166;
+    margin: 0;
+    padding-left: .8em;
+}
+li {
+    margin: 0;
+}
+
+/*** Blockquotes ***/
+
+blockquote {
+    color: #4cbf99;
+    margin: 0;
+}
+
+/*** Preformatted text ***/
+
+pre {
+    font-family: DejaVu Sans Mono, monospace;
+    color: #86b300;
+    page-break-inside: avoid;
+    margin: 0;
+}
+
+/*** Colophon with additional information ***/
+
+colophon {
+    font-size: 10pt;
+    color: #5c6166;
+}
+colophon > url > a {
+    /* Undo default link styling in colophon */
+    font-size: 10pt;
+    color: #5c6166;
+}
+colophon > url > a::before { content: ''; }
+colophon > url > a::after { content: ''; }
+
+/*** Move the colophon into the page footer ***/
+
+/* Note that a simpler but less customizable example for moving
+   the colophon into the page footer is provided below */
+
+colophon > author  { position: running(author);  }
+colophon > datesep { position: running(datesep); }
+colophon > date    { position: running(date);    }
+colophon > urlsep  { position: running(urlsep);  }
+colophon > url     { position: running(url);     }
+@page:first {
+    @bottom-right {
+        content: element(author)
+                 element(datesep)   /* The string ', ' if both author
+                                       and date are specified. If either
+                                       author or date are missing, this
+                                       element is missing as well. */
+                 element(date)
+                 element(urlsep)    /* A single <br /> tag if either author
+                                       or date are specified and if the url
+                                       is specified as well. If the url is
+                                       missing or if both author and date
+                                       are missing, this element is missing
+                                       as well. */
+                 element(url)   ;
+    }
+}
+
+/* If you want to use the default footer layout, you can also use
+   the following code instead of the more involved example provided
+   above. Make sure to remove the example above if you uncomment the
+   one below. */
+/*
+colophon {
+    position: running(footer);
+}
+@page:first {
+    @bottom-right {
+        content: element(footer);
+    }
+}
+*/
