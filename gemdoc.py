@@ -399,6 +399,15 @@ def parse_magic_lines(doc: str) -> tuple[str,dict]:
 
 def parse_gemini(doc: str, metadata: dict) -> tuple[str,str]:
     body = list(); got_title = False; preformatted = False
+    _document_url = metadata.get('url', '')
+    if _document_url == None:
+        _site_url = ''
+    else:
+        _site_url_scheme, _site_url_host, *_ = urlparse(_document_url)
+    def is_site_relative(link: str) -> bool:
+        _link_url_scheme, _link_url_host, *_ = urlparse(link)
+        return _link_url_scheme == _site_url_scheme and \
+               _link_url_host == _site_url_host
     def add(line, tag='p', css_class=None) -> None:
         if tag and css_class:
             body.append(f'<{tag} class="{css_class}">'
@@ -487,6 +496,8 @@ def parse_gemini(doc: str, metadata: dict) -> tuple[str,str]:
                 scheme, *_= urlparse(link)
                 doc[i] = f'=> {link}{"  " if label else ""}{label}'
             css_class = scheme
+            if is_site_relative(link):
+                css_class += (' ' if css_class else '') + '_internal'
             if not label:
                 label = html_escape(link)
                 css_class += (' ' if css_class else '') + '_nolabel'
