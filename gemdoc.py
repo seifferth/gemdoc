@@ -811,8 +811,8 @@ Options
                             This option may be passed multiple times to use
                             multiple stylesheets. If this option is supplied,
                             the default stylesheet will not be applied.
-  --print-default-css       Print the default stylesheet to stdout or to
-                            the file specified via --output.
+  --print-default-css       Print the default stylesheet to stdout or to the
+                            file specified via --output.
   -h, --help                Print this help message and exit.
 """.lstrip()
 
