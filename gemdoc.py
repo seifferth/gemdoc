@@ -939,7 +939,7 @@ if __name__ == "__main__":
             if output != '-' and not re.search(r'[^\.]\.[^\.]+$', output):
                 output += guess_extension(mime_type, strict=False) or ''
             warn(f'Writing non pdf file to {output}. The file\'s mime type '
-                 f'was reported to be \'{mime_type}\'')
+                 f'was reported to be \'{mime_type}\'.')
             write_output(doc)
 
     # Ensure that all metadata is valid ascii; possibly dropping characters
