@@ -807,11 +807,10 @@ Options
                             line takes precedence. If neither are present and
                             the input is already in polyglot format, existing
                             pdf metadata will be preserved.
-  --css FILE                Use the specified css stylesheet to style the
-                            document. This option may be passed multiple
-                            times to use multiple css files. If at least
-                            one user-specified stylesheet is specified, the
-                            default stylesheet will not be applied.
+  --css FILE                Use the specified css file to style the document.
+                            This option may be passed multiple times to use
+                            multiple stylesheets. If this option is supplied,
+                            the default stylesheet will not be applied.
   --print-default-css       Print the default stylesheet to stdout or to
                             the file specified via --output.
   -h, --help                Print this help message and exit.
