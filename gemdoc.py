@@ -781,7 +781,10 @@ _cli_help = """
 Usage: gemdoc [OPTION]... <GEMINI-URL|INPUT-FILE>
 
 Options
-  -o FILE, --output=FILE    Write output to FILE rather than to stdout.
+  -o FILE, --output=FILE    Write output to FILE. To print output to stdout,
+                            specify a single dash '-' as the output filename.
+                            If no output file is specified, the filename will
+                            be set automatically based on the source URL.
   -i, --in-place            Modify the input file in place. Or more
                             specifically, replace the input file with the
                             resulting polyglot file. If the input file is
@@ -820,7 +823,7 @@ if __name__ == "__main__":
     opts, args = getopt(sys.argv[1:], 'ho:M:i',
                         ['help', 'output=', 'metadata=', 'css=',
                          'print-default-css', 'in-place', 'no-convert'])
-    output = '-'; metadata = dict(); input_type = None
+    output = None; metadata = dict(); input_type = None
     in_place = False; o_flag = False; no_convert = False
     print_default_css = False; stylesheets = list()
     for k, v in opts:
@@ -866,6 +869,7 @@ if __name__ == "__main__":
                 raise Exception(f'Invalid type {type(doc)}')
 
     if print_default_css:
+        if output == None: output = '-'
         write_output(_default_css); exit(0)
     elif len(args) != 1:
         err('Gemdoc takes exactly one positional argument but got '
@@ -888,6 +892,11 @@ if __name__ == "__main__":
 
     if no_convert and input_type == 'local':
         err('The --no-convert option can only be used with remote inputs')
+    elif not o_flag and not in_place:
+        if input_type == 'local':
+            err('Either -i or -o must be specified for local inputs')
+        else:
+            pass  # The filename will be determined later on based on the URL
     elif in_place:
         if o_flag:
             err('The -o and -i flags are mutually exclusive')
@@ -926,6 +935,19 @@ if __name__ == "__main__":
             if k not in metadata: metadata[k] = v
 
     elif input_type == 'remote':
+        if not o_flag:
+            _, _, input_url_path, *_ = urlparse(args[0])
+            output = os.path.basename(input_url_path.rstrip('/')) \
+                                     .lstrip('.~/')
+            if not re.search(r'[^\.]\.[^\.]+$', output):
+                if mime_type == 'text/gemini':
+                    output += '.gmi' if no_convert else '.pdf'
+                else:
+                    output += guess_extension(mime_type, strict=False) or ''
+            if os.path.exists(output):
+                err(f'The output file \'{output}\' already exists. This file '
+                    f'will not be replaced. To replace \'{output}\', use the '
+                     '-o flag to explicitly specify the filename.')
         if no_convert:
             write_output(doc)
             exit(0)
@@ -936,8 +958,6 @@ if __name__ == "__main__":
         elif mime_type.lower() == 'text/gemini':
             pass
         else:
-            if output != '-' and not re.search(r'[^\.]\.[^\.]+$', output):
-                output += guess_extension(mime_type, strict=False) or ''
             warn(f'Writing non pdf file to {output}. The file\'s mime type '
                  f'was reported to be \'{mime_type}\'.')
             write_output(doc)
