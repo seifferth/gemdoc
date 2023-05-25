@@ -778,7 +778,7 @@ div.headingcontext {
 
 
 _cli_help = """
-Usage: gemdoc [OPTION]... FILE
+Usage: gemdoc [OPTION]... <GEMINI-URL|INPUT-FILE>
 
 Options
   -o FILE, --output=FILE    Write output to FILE rather than to stdout.
