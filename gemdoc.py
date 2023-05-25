@@ -936,7 +936,7 @@ if __name__ == "__main__":
         elif mime_type.lower() == 'text/gemini':
             pass
         else:
-            if not re.search(r'[^\.]\.[^\.]+$', output):
+            if output != '-' and not re.search(r'[^\.]\.[^\.]+$', output):
                 output += guess_extension(mime_type, strict=False) or ''
             warn(f'Writing non pdf file to {output}. The file\'s mime type '
                  f'was reported to be \'{mime_type}\'')
