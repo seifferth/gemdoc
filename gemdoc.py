@@ -893,6 +893,9 @@ if __name__ == "__main__":
             err('The -o and -i flags are mutually exclusive')
         elif input_type != 'local':
             err('The -i flag can only be used for local inputs')
+        elif args[0] == '-':
+            err('The -i flag can not be used to process stdin. To use gemdoc'
+                'as a unix filter, use \'-o-\' instead.')
         elif not os.path.isfile(args[0]) or os.path.islink(args[0]):
             err(f'Cannot modify \'{args[0]}\' in place: Not a regular file')
         else:
