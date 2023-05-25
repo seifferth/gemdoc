@@ -22,30 +22,31 @@ p {
 }
 
 /*** Links ***/
-a {
+a > p {
     /* Default styling for links */
-    text-decoration: none;
     color: #a37acc;
 }
-a::after {
-    /* Insert the url in brackets after the link label */
-    content: ' ('attr(href)')';
+a > p > br {
+    /* Display link label and url on the same line */
+    display: none;
 }
+/* Wrap url after the link label in brackets */
+a > p > span.url::before { content: '('; }
+a > p > span.url::after { content: ')'; }
 /* The _nolabel class describes links where no human-readable label is
    provided. In these cases, the content and the href of the a tag are
    the same. In order to not print the same url twice, the automated
    printing of the parenthesized url is disabled for those links. */
-a._nolabel::before { content: ''; }
-a._nolabel::after { content: ''; }
+a._nolabel > p > span.url { display: none; }
 
-a.gemini {
+a.gemini > p {
     /* Styling for links to gemini:// urls */
     color: #399ee6;
 }
-a.gopher {
+a.gopher > p {
     /* Styling for links to gopher:// urls */
 }
-a.mailto {
+a.mailto > p {
     /* Styling for links to mailto: urls */
 }
 /* Note that these selectors work for any kind of url scheme. There is no
@@ -113,13 +114,6 @@ colophon {
     font-size: 10pt;
     color: #5c6166;
 }
-colophon > url > a {
-    /* Undo default link styling in colophon */
-    font-size: 10pt;
-    color: #5c6166;
-}
-colophon > url > a::before { content: ''; }
-colophon > url > a::after { content: ''; }
 
 /*** Move the colophon into the page footer ***/
 

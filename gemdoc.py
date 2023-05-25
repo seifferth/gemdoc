@@ -496,8 +496,10 @@ def parse_gemini(doc: str, metadata: dict) -> tuple[str,str]:
             if not label:
                 label = html_escape(link)
                 css_class += (' ' if css_class else '') + '_nolabel'
-            body.append(f'<p class="a"><a href="{link}" class="{css_class}">'
-                        f'{html_escape(label)}</a></p>')
+            body.append(f'<a href="{link}" class="{css_class}"><p>'
+                        f'<span class="label">{html_escape(label)}</span> '
+                        f'<br /><span class="url">{html_escape(link)}</span>'
+                         '</p></a>')
         elif not doc[i].strip():
             body.append('<br />')
         else:
@@ -568,49 +570,52 @@ p {
 }
 
 /*** Links ***/
-p.a {
+a > p {
     /* Paragraphs containing links (i. e. a single link per paragraph) */
     margin-left: 20pt;
     text-align: left;
 }
-a {
-    /* Default styling for links */
-    text-decoration: none;
+a > p > span.label {
+    /* Default styling for link labels */
     font-weight: 600;
 }
-a::before {
+a > p::before {
     content: '🌐︎';
     margin-left: -20pt;
     display: inline-block;
     width: 20pt;
     color: rgb(210, 120, 10);
 }
-a._internal::before {
+a > p > span.url {
+    /* Default styling for printed urls */
+    font-weight: 400;
+}
+/* To display the link and its label on the same line, uncomment the
+   line below */
+/* a > p > br { display: none; } */
+
+a._internal > p::before {
     /* The _internal class describes links that lead to the same site
     that has been specified as the page footer */
     content: '➤';
-}
-a::after {
-    /* Insert the url in brackets after the link label */
-    font-weight: 400;
-    content: ' ('attr(href)')';
 }
 /* The _nolabel class describes links where no human-readable label is
    provided. In these cases, the content and the href of the a tag are
    the same. In order to not print the same url twice, the automated
    printing of the parenthesized url is disabled for those links. */
-a._nolabel::after { content: ''; }
+a._nolabel > p > br { display: none; }
+a._nolabel > p > span.url { display: none; }
 
-a.gemini {
+a.gemini > p {
     /* Styling for links to gemini:// urls */
 }
-a.gemini::before {
+a.gemini > p::before {
     color: rgb(10, 110, 130);
 }
-a.gopher {
+a.gopher > p {
     /* Styling for links to gopher:// urls */
 }
-a.mailto {
+a.mailto > p {
     /* Styling for links to mailto: urls */
 }
 /* Note that these selectors work for any kind of url scheme. There is no
@@ -712,14 +717,6 @@ colophon {
     line-height: 110%;
     color: #806000;
 }
-colophon > url > a {
-    /* Undo default link styling in colophon */
-    font-size: inherit;
-    font-weight: inherit;
-    line-height: inherit;
-}
-colophon > url > a::before { content: ''; }
-colophon > url > a::after { content: ''; }
 
 /*** Move the colophon into the page footer ***/
 
@@ -769,6 +766,7 @@ colophon {
 _minimal_css = """
 a {
     color: inherit;
+    text-decoration: none;
 }
 div.headingcontext {
     page-break-inside: avoid;
