@@ -936,6 +936,8 @@ if __name__ == "__main__":
             _, _, input_url_path, *_ = urlparse(args[0])
             output = os.path.basename(input_url_path.rstrip('/')) \
                                      .lstrip('.~/')
+            if mime_type == 'text/gemini' and output.endswith('.gmi'):
+                if not no_convert: output = output[:-4]+'.pdf'
             if not re.search(r'[^\.]\.[^\.]+$', output):
                 if mime_type == 'text/gemini':
                     output += '.gmi' if no_convert else '.pdf'
