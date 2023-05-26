@@ -960,6 +960,7 @@ if __name__ == "__main__":
             warn(f'Writing non pdf file to {output}. The file\'s mime type '
                  f'was reported to be \'{mime_type}\'.')
             write_output(doc)
+            exit(0)
 
     # Ensure that all metadata is valid ascii; possibly dropping characters
     for k, v in metadata.items():
