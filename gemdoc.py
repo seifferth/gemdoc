@@ -962,6 +962,16 @@ if __name__ == "__main__":
             write_output(doc)
             exit(0)
 
+    # Escape occurrences of %!GEMDOC magic lines left in text/gemini files
+    # downloaded from remote sources. This ensures that these lines will not
+    # be processed if gemdoc is later invoked again on the output file (e. g.
+    # in order to change the pdf layout of the pdf part).
+    if '%!GEMDOC' in doc:
+        doc = doc.replace('%!GEMDOC', '%\u200b!GEMDOC')
+        warn('Warning: Occurrences of the \'%!GEMDOC\' keyword have been '
+             'escaped by inserting a zero width space after the first '
+             'character')
+
     # Ensure that all metadata is valid ascii; possibly dropping characters
     for k, v in metadata.items():
         if k == 'url':
