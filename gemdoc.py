@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import sys, os, tempfile
-import re, base64, textwrap
+import re, base64, zlib, textwrap
 import socket, ssl
 from typing import Union
 from io import BytesIO
@@ -202,16 +202,19 @@ class GemdocPDFObject():
             if endobj == -1: raise Exception('Missing endobj keyword')
             self._contents = binary[:endobj]
             self._stream = None
-    def serialize(self) -> bytes:
+    def serialize(self, flateencode) -> bytes:
         dictionary = deepcopy(self.dictionary)
         flist = dictionary.pop(b'/Filter', [])
         if type(flist) == bytes: flist = [flist]
         if self._stream != None:
-            stream = base64.a85encode(self._stream)+b'~>'
+            stream = self._stream
+            if flateencode: stream = zlib.compress(stream)
+            stream = base64.a85encode(stream)+b'~>'
             # Space-stuff stream if it could be mistaken for a
             # gemini preformatting toggle off line
             if stream.startswith(b'```'): stream = b' '+stream
             binary = (b'\rstream\n' + stream + b'\rendstream\r')
+            if flateencode: flist.insert(0, b'/FlateDecode')
             flist.insert(0, b'/ASCII85Decode')
         else:
             binary = self._contents.replace(b'\n', b'\r')
@@ -250,8 +253,9 @@ class GemdocPDF():
         if endobj == -1: raise Exception('Missing endobj keyword')
         return objnum, binary[:endobj]+b'\n', binary[endobj:]
     def __init__(self, gemini: str, binary: Union[bytes,str],
-                 gemini_filename='source.gmi'):
+                 gemini_filename='source.gmi', flateencode_streams=False):
         if type(binary) == str: binary = binary.encode('utf-8')
+        self._flateencode_streams = flateencode_streams
         self._gemini = gemini
         self._objects = dict()
         self._trailer = GemdocPDFTrailer(b'')
@@ -338,7 +342,7 @@ class GemdocPDF():
         result += b'```% What follows is a pdf representation of this file\n'
         for objnum, obj in self._objects.items():
             xref[objnum] = len(result)
-            result += obj.serialize()
+            result += obj.serialize(flateencode=self._flateencode_streams)
         startxref = len(result); result += b'xref\r'
         result += f'0 {max(xref.keys())+1}\r'.encode('ascii')
         result += (10*'0'+' 65535 f \r').encode('ascii')
@@ -1025,6 +1029,7 @@ if __name__ == "__main__":
     html = HTML(string=html)
     pdf = BytesIO()
     extra_weasyprint_opts = {}
+    extra_gemdocpdf_opts = {}
     def has_pdfa_support(v: str):
         if v.startswith('56.') and v in ['56.0', '56.1']: return 'v1'
         elif int((v+'.').split('.')[0]) <= 56: return 'no'
@@ -1043,13 +1048,15 @@ if __name__ == "__main__":
         extra_weasyprint_opts['pdf_version'] = '1.6'
         extra_weasyprint_opts['pdf_variant'] = 'pdf/a-3b'
         extra_weasyprint_opts['uncompressed_pdf'] = True
+        extra_gemdocpdf_opts['flateencode_streams'] = True
     else:
         raise Exception('Internal error: weasyprint options are apparently '
                         'not fully implemented')
     html.write_pdf(pdf, stylesheets=css, **extra_weasyprint_opts)
 
     pdf.seek(0); polyglot = GemdocPDF(gemini, pdf.read(),
-                                      gemini_filename=gemini_filename)
+                                      gemini_filename=gemini_filename,
+                                      **extra_gemdocpdf_opts)
     polyglot.set_metadata(metadata)
     write_output(polyglot.serialize())
     if in_place: os.rename(output, args[0])
