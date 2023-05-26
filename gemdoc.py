@@ -910,7 +910,7 @@ if __name__ == "__main__":
                 prefix = os.path.basename(args[0])+'.',
             )
 
-    from weasyprint import HTML, CSS
+    from weasyprint import HTML, CSS, __version__ as weasyprint_version
     css = [CSS(string=_minimal_css)]
     try:
         for s in stylesheets:
@@ -1024,7 +1024,29 @@ if __name__ == "__main__":
     gemini, html = parse_gemini(doc, metadata)
     html = HTML(string=html)
     pdf = BytesIO()
-    html.write_pdf(pdf, stylesheets=css)
+    extra_weasyprint_opts = {}
+    def has_pdfa_support(v: str):
+        if v.startswith('56.') and v in ['56.0', '56.1']: return 'v1'
+        elif int((v+'.').split('.')[0]) <= 56: return 'no'
+        elif int((v+'.').split('.')[0]) <= 58: return 'v1'
+        else: return 'v2'
+    if has_pdfa_support(weasyprint_version) == 'no':
+        warn('The currently used version of weasyprint (version '
+            f'{weasyprint_version}) does not include support for generating '
+             'PDF/A documents. To have gemdoc generate a file that conforms '
+             'to PDF/A requirements, make sure to use it with weasyprint '
+             'version 56.0 or above.')
+    elif has_pdfa_support(weasyprint_version) == 'v1':
+        extra_weasyprint_opts['version'] = '1.6'
+        extra_weasyprint_opts['variant'] = 'pdf/a-3b'
+    elif has_pdfa_support(weasyprint_version) == 'v2':
+        extra_weasyprint_opts['pdf_version'] = '1.6'
+        extra_weasyprint_opts['pdf_variant'] = 'pdf/a-3b'
+        extra_weasyprint_opts['uncompressed_pdf'] = True
+    else:
+        raise Exception('Internal error: weasyprint options are apparently '
+                        'not fully implemented')
+    html.write_pdf(pdf, stylesheets=css, **extra_weasyprint_opts)
 
     pdf.seek(0); polyglot = GemdocPDF(gemini, pdf.read(),
                                       gemini_filename=gemini_filename)
