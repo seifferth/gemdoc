@@ -292,6 +292,9 @@ class GemdocPDF():
         if gemini != None:
             self._gemini_objnum = max(self._objects.keys())+1
             self._make_attachment(self._gemini_objnum, gemini_filename)
+    def _make_utf16_string(self, s: str) -> str:
+        return '<feff'+''.join(('{:02x}'.format(b)
+                                for b in s.encode('utf-16be')))+'>'
     def _make_attachment(self, gemini_objnum, gemini_filename):
         root_ref = self._trailer.dictionary.get(b'/Root')
         root_objnum = int(root_ref.decode('ascii').split()[0])
@@ -301,9 +304,7 @@ class GemdocPDF():
                     (f'{filespec_objnum} 0 obj\r'
                      '<</Type/Filespec/AFRelationship/Source'
                       f'/F({gemini_filename})'
-                      f'/UF<feff'+''.join(('{:02x}'.format(char) for char in
-                                       gemini_filename.encode('utf-16be')))+\
-                       '>'
+                      f'/UF'+self._make_utf16_string(gemini_filename)+\
                       f'/EF<</F {gemini_objnum} 0 R>>'
                     f'>>\nendobj\r').encode('ascii')
                    )
