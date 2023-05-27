@@ -303,7 +303,7 @@ class GemdocPDF():
         filespec = GemdocPDFObject(
                     (f'{filespec_objnum} 0 obj\r'
                      '<</Type/Filespec/AFRelationship/Source'
-                      f'/F({gemini_filename})'
+                      f'/F'+self._make_utf16_string(gemini_filename)+\
                       f'/UF'+self._make_utf16_string(gemini_filename)+\
                       f'/EF<</F {gemini_objnum} 0 R>>'
                     f'>>\nendobj\r').encode('ascii')
