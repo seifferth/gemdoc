@@ -1058,8 +1058,8 @@ if __name__ == "__main__":
         warn('The currently used version of weasyprint (version '
             f'{weasyprint_version}) does not include support for generating '
              'PDF/A documents. To have gemdoc generate a file that conforms '
-             'to PDF/A requirements, make sure to use it with weasyprint '
-             'version 56.0 or above.')
+             'to PDF/A requirements, make sure to use weasyprint version '
+             '56.0 or above.')
     elif weasyprint_version < parse_version('59.0b1'):
         extra_weasyprint_opts['version'] = '1.6'
         extra_weasyprint_opts['variant'] = 'pdf/a-3b'
