@@ -348,9 +348,9 @@ class GemdocPDF():
             metadata[k] = v[1:-1].decode('ascii')
         return metadata
     def serialize(self) -> bytes:
-        self._set_file_identifier()
         xref = dict()
         if self._gemini != None:
+            self._set_file_identifier()
             result = f'%PDF-1.7\n{magic_line}\n```\n```\r'.encode('utf-8')
             xref[self._gemini_objnum] = len(result)
             gemini_length = len(self._gemini.encode('utf-8'))
