@@ -6,6 +6,7 @@ import socket, ssl
 from typing import Union
 from io import BytesIO
 from hashlib import sha256
+from pkg_resources import parse_version
 #from weasyprint import HTML, CSS       # moved below to improve performance
                                         # if weasyprint is not used.
 from urllib.parse import urlparse, urljoin, quote as urlquote,\
@@ -1052,30 +1053,23 @@ if __name__ == "__main__":
     pdf = BytesIO()
     extra_weasyprint_opts = {}
     extra_gemdocpdf_opts = {}
-    def has_pdfa_support(v: str):
-        if v.startswith('56.') and v in ['56.0', '56.1']: return 'v1'
-        elif int((v+'.').split('.')[0]) <= 56: return 'no'
-        elif int((v+'.').split('.')[0]) <= 58: return 'v1'
-        else: return 'v2'
-    if has_pdfa_support(weasyprint_version) == 'no':
+    weasyprint_version = parse_version(weasyprint_version)
+    if weasyprint_version < parse_version('56.0'):
         warn('The currently used version of weasyprint (version '
             f'{weasyprint_version}) does not include support for generating '
              'PDF/A documents. To have gemdoc generate a file that conforms '
              'to PDF/A requirements, make sure to use it with weasyprint '
              'version 56.0 or above.')
-    elif has_pdfa_support(weasyprint_version) == 'v1':
+    elif weasyprint_version < parse_version('59.0b1'):
         extra_weasyprint_opts['version'] = '1.6'
         extra_weasyprint_opts['variant'] = 'pdf/a-3b'
-    elif has_pdfa_support(weasyprint_version) == 'v2':
+    else:
         extra_weasyprint_opts['pdf_version'] = '1.6'
         extra_weasyprint_opts['pdf_variant'] = 'pdf/a-3b'
         extra_weasyprint_opts['uncompressed_pdf'] = True
         extra_gemdocpdf_opts['flateencode_streams'] = True
-    else:
-        raise Exception('Internal error: weasyprint options are apparently '
-                        'not fully implemented')
-    html.write_pdf(pdf, stylesheets=css, **extra_weasyprint_opts)
 
+    html.write_pdf(pdf, stylesheets=css, **extra_weasyprint_opts)
     pdf.seek(0); polyglot = GemdocPDF(gemini, pdf.read(),
                                       gemini_filename=gemini_filename,
                                       **extra_gemdocpdf_opts)
