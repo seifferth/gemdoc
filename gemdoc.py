@@ -309,8 +309,8 @@ class GemdocPDF():
         self._objects[filespec_objnum] = filespec
         fileref = f'{gemini_objnum} 0 R'.encode('ascii')
         root[b'/Names'] = {b'/EmbeddedFiles': {b'/Names': [
-                              f'({gemini_filename})'.encode('ascii',
-                                                            errors='replace'),
+                              self._make_utf16_string(gemini_filename) \
+                                                        .encode('ascii'),
                               f'{filespec_objnum} 0 R'.encode('ascii'),
                           ]}}
         if b'/AF' not in root: root[b'/AF'] = list()
