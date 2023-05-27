@@ -332,7 +332,7 @@ class GemdocPDF():
             xref[self._gemini_objnum] = len(result)
             gemini_length = len(self._gemini.encode('utf-8'))
             result += (f'{self._gemini_objnum} 0 obj\r'
-                        '<</Type/EmbeddedFile/Params'
+                        '<</Type/EmbeddedFile/Subtype/text#2fgemini/Params'
                             f'<</Size {gemini_length+1}>>'
                          f'/Length {gemini_length+1}>>\rstream\n'
                        f'{self._gemini}\n\nendstream\nendobj\n') \
