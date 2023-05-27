@@ -5,6 +5,7 @@ import re, base64, zlib, textwrap
 import socket, ssl
 from typing import Union
 from io import BytesIO
+from hashlib import sha256
 #from weasyprint import HTML, CSS       # moved below to improve performance
                                         # if weasyprint is not used.
 from urllib.parse import urlparse, urljoin, quote as urlquote,\
@@ -252,11 +253,24 @@ class GemdocPDF():
         endobj = binary.find(b'endobj')+len(b'endobj')
         if endobj == -1: raise Exception('Missing endobj keyword')
         return objnum, binary[:endobj]+b'\n', binary[endobj:]
+    def set_file_identifier(self):
+        if self._gemini_hash == None:
+            raise Exception('Unable to set primary ID for pdf document '
+                            'without a text/gemini representation')
+        elif self._binary_hash == None:
+            raise Exception('Unable to set secondary ID for pdf document '
+                            'without a pdf representation')
+        pdf_id = f'[<{self._gemini_hash}><{self._binary_hash}>]'
+        self._trailer.dictionary[b'/ID'] = pdf_id.encode('ascii')
     def __init__(self, gemini: str, binary: Union[bytes,str],
                  gemini_filename='source.gmi', flateencode_streams=False):
         """Note that only ascii characters are allowed in gemini_filename"""
         _ = gemini_filename.encode('ascii')
         if type(binary) == str: binary = binary.encode('utf-8')
+        self._gemini_hash = sha256(gemini.encode('utf-8')).hexdigest() \
+                                                if gemini != None else None
+        self._binary_hash = sha256(binary).hexdigest() \
+                                                if binary != None else None
         self._flateencode_streams = flateencode_streams
         self._gemini = gemini
         self._objects = dict()
@@ -333,6 +347,7 @@ class GemdocPDF():
             metadata[k] = v[1:-1].decode('ascii')
         return metadata
     def serialize(self) -> bytes:
+        self.set_file_identifier()
         xref = dict()
         if self._gemini != None:
             result = f'%PDF-1.6\n{magic_line}\n```\n```\r'.encode('utf-8')
