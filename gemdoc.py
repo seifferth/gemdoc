@@ -254,7 +254,7 @@ class GemdocPDF():
         endobj = binary.find(b'endobj')+len(b'endobj')
         if endobj == -1: raise Exception('Missing endobj keyword')
         return objnum, binary[:endobj]+b'\n', binary[endobj:]
-    def set_file_identifier(self):
+    def _set_file_identifier(self):
         if self._gemini_hash == None:
             raise Exception('Unable to set primary ID for pdf document '
                             'without a text/gemini representation')
@@ -348,7 +348,7 @@ class GemdocPDF():
             metadata[k] = v[1:-1].decode('ascii')
         return metadata
     def serialize(self) -> bytes:
-        self.set_file_identifier()
+        self._set_file_identifier()
         xref = dict()
         if self._gemini != None:
             result = f'%PDF-1.7\n{magic_line}\n```\n```\r'.encode('utf-8')
