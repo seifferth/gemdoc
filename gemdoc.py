@@ -351,7 +351,7 @@ class GemdocPDF():
         self.set_file_identifier()
         xref = dict()
         if self._gemini != None:
-            result = f'%PDF-1.6\n{magic_line}\n```\n```\r'.encode('utf-8')
+            result = f'%PDF-1.7\n{magic_line}\n```\n```\r'.encode('utf-8')
             xref[self._gemini_objnum] = len(result)
             gemini_length = len(self._gemini.encode('utf-8'))
             result += (f'{self._gemini_objnum} 0 obj\r'
@@ -361,7 +361,7 @@ class GemdocPDF():
                        f'{self._gemini}\n\nendstream\nendobj\n') \
                                                             .encode('utf-8')
         else:
-            result = f'%PDF-1.6\n%¶🗎\ufe0e\n'.encode('utf-8')
+            result = f'%PDF-1.7\n%¶🗎\ufe0e\n'.encode('utf-8')
         result += b'```% What follows is a pdf representation of this file\n'
         for objnum, obj in self._objects.items():
             xref[objnum] = len(result)
@@ -1068,10 +1068,10 @@ if __name__ == "__main__":
                  'gemdoc generate a file that fully conforms to PDF/A-3B '
                  'requirements, make sure to use weasyprint version 58 or '
                  'above.')
-        extra_weasyprint_opts['version'] = '1.6'
+        extra_weasyprint_opts['version'] = '1.7'
         extra_weasyprint_opts['variant'] = 'pdf/a-3b'
     else:
-        extra_weasyprint_opts['pdf_version'] = '1.6'
+        extra_weasyprint_opts['pdf_version'] = '1.7'
         extra_weasyprint_opts['pdf_variant'] = 'pdf/a-3b'
         extra_weasyprint_opts['uncompressed_pdf'] = True
         extra_gemdocpdf_opts['flateencode_streams'] = True
