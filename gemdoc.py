@@ -254,6 +254,8 @@ class GemdocPDF():
         return objnum, binary[:endobj]+b'\n', binary[endobj:]
     def __init__(self, gemini: str, binary: Union[bytes,str],
                  gemini_filename='source.gmi', flateencode_streams=False):
+        """Note that only ascii characters are allowed in gemini_filename"""
+        _ = gemini_filename.encode('ascii')
         if type(binary) == str: binary = binary.encode('utf-8')
         self._flateencode_streams = flateencode_streams
         self._gemini = gemini
@@ -282,10 +284,13 @@ class GemdocPDF():
         filespec_objnum = gemini_objnum + 1
         filespec = GemdocPDFObject(
                     (f'{filespec_objnum} 0 obj\r'
-                     '<</Type/Filespec'
+                     '<</Type/Filespec/AFRelationship/Source'
                       f'/F({gemini_filename})'
+                      f'/UF<feff'+''.join(('{:02x}'.format(char) for char in
+                                       gemini_filename.encode('utf-16be')))+\
+                       '>'
                       f'/EF<</F {gemini_objnum} 0 R>>'
-                    f'>>\nendobj\r').encode('ascii', errors='replace')
+                    f'>>\nendobj\r').encode('ascii')
                    )
         self._objects[filespec_objnum] = filespec
         fileref = f'{gemini_objnum} 0 R'.encode('ascii')
@@ -294,6 +299,8 @@ class GemdocPDF():
                                                             errors='replace'),
                               f'{filespec_objnum} 0 R'.encode('ascii'),
                           ]}}
+        if b'/AF' not in root: root[b'/AF'] = list()
+        root[b'/AF'].append(f'{filespec_objnum} 0 R'.encode('ascii'))
         new_size = str(filespec_objnum+1).encode('ascii')
         self._trailer.dictionary[b'/Size'] = new_size
     def _info_dict(self):
