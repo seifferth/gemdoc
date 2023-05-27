@@ -353,6 +353,7 @@ class GemdocPDF():
         return metadata
     def serialize(self) -> bytes:
         xref = dict()
+        self._info_dict()[b'/Creator'] = b'(gemdoc)'
         if self._gemini != None:
             self._set_file_identifier()
             result = f'%PDF-1.7\n{magic_line}\n```\n```\r'.encode('utf-8')
