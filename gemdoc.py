@@ -265,8 +265,6 @@ class GemdocPDF():
         self._trailer.dictionary[b'/ID'] = pdf_id.encode('ascii')
     def __init__(self, gemini: str, binary: Union[bytes,str],
                  gemini_filename='source.gmi', flateencode_streams=False):
-        """Note that only ascii characters are allowed in gemini_filename"""
-        _ = gemini_filename.encode('ascii')
         if type(binary) == str: binary = binary.encode('utf-8')
         self._gemini_hash = sha256(gemini.encode('utf-8')).hexdigest() \
                                                 if gemini != None else None
@@ -1005,28 +1003,6 @@ if __name__ == "__main__":
              'escaped by inserting a zero width space after the first '
              'character')
 
-    # Ensure that all metadata is valid ascii; possibly dropping characters
-    for k, v in metadata.items():
-        if k == 'url':
-            no_urlquote_chars = '~:/?#[]@!$&\'()*+,;=%'
-            v = urlquote(v, safe=no_urlquote_chars)
-            v = urlquote(v, safe=no_urlquote_chars)
-            # I believe that this invocation of the urlquote function
-            # should be idempotent. That is why I apply it again when
-            # writing pdf metadata; and yet again every time the pdf part
-            # is updated. If this function should not be idempotent,
-            # calling it twice early on should help me spot errors
-            # earlier in the process.
-            if v != metadata[k]:
-                warn(f'Warning: Non-ascii characters in the url field have '
-                      'been escaped by percent-encoding them')
-        else:
-            v = ''.join((c if c.isascii() else '_' for c in v))
-            if v != metadata[k]:
-                warn(f'Warning: Non-unicode characters in the {k} field '
-                      'have been replaced with underscores')
-        _ = v.encode('ascii') # Raise exception if encoding as ascii fails
-        metadata[k] = v
     gemini_filename = 'source.gmi'
     if 'url' in metadata:
         _scheme, _netloc, path, *_ = urlparse(metadata['url'])
@@ -1034,12 +1010,6 @@ if __name__ == "__main__":
             gemini_filename = path.split('/')[-1]
             if '%' in gemini_filename:
                 gemini_filename = urlunquote(gemini_filename)
-                gemini_filename = ''.join((c if c.isascii() else '_'
-                                             for c in gemini_filename))
-                warn(f'Warning: Non-unicode characters in the filename '
-                      'for the embedded source file have been replaced '
-                      'with underscores')
-                _ = gemini_filename.encode('ascii')
             if not re.search(r'[^\.]\.[^\.]', gemini_filename):
                 gemini_filename = gemini_filename+'.gmi'
 
