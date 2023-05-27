@@ -334,7 +334,7 @@ class GemdocPDF():
             elif k == 'url':       k = b'/URL'
             elif k == 'subject':   k = b'/Subject'
             elif k == 'keywords':  k = b'/Keywords'
-            info[k] = f'({v})'.encode('ascii')
+            info[k] = self._make_utf16_string(v).encode('ascii')
     def get_metadata(self):
         metadata = dict()
         for k, v in self._info_dict().items():
@@ -345,8 +345,13 @@ class GemdocPDF():
             elif k == b'/Subject':         k = 'subject'
             elif k == b'/Keywords':        k = 'keywords'
             else: continue
-            if not (v.startswith(b'(') and v.endswith(b')')): continue
-            metadata[k] = v[1:-1].decode('ascii')
+            if v.startswith(b'(') and v.endswith(b')'):
+                metadata[k] = v[1:-1].decode('ascii')
+            elif v.startswith(b'<') and v.endswith(b'>'):
+                metadata[k] = bytes.fromhex(v[1:-1].decode('ascii')) \
+                                                        .decode('utf-16')
+            else:
+                pass
         return metadata
     def serialize(self) -> bytes:
         xref = dict()
