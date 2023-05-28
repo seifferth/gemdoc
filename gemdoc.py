@@ -354,6 +354,16 @@ class GemdocPDF():
     def serialize(self) -> bytes:
         xref = dict()
         self._info_dict()[b'/Creator'] = b'(gemdoc)'
+        p = self._info_dict().pop(b'/Producer')
+        p_note = ' (with gemdoc postprocessing)'
+        if p.startswith(b'(') and p.endswith(b')'):
+            self._info_dict()[b'/Producer'] = p[:-1] + \
+                                            p_note.encode('ascii') + p[-1:]
+        elif p.startswith(b'<') and p.endswith(b'>'):
+            self._info_dict()[b'/Producer'] = p[:-1] + \
+                   self._make_utf16_string(p_note).encode('ascii') + p[-1:]
+        else:
+            self._info_dict()[b'/Producer'] = p
         if self._gemini != None:
             self._set_file_identifier()
             result = f'%PDF-1.7\n{magic_line}\n```\n```\r'.encode('utf-8')
