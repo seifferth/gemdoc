@@ -474,14 +474,24 @@ def parse_gemini(doc: str, metadata: dict) -> tuple[str,str]:
             add(doc[i], tag=None)
         elif doc[i].startswith('```'):
             body.append('<pre>'); preformatted = True
-        elif doc[i].startswith('# '):
+        elif doc[i].startswith('###'):
+            body.append('<div class="headingcontext">')
+            add(doc[i][3:].strip(), tag='h3')
+            i = add_empty_lines(i)
+            body.append('</div>')
+        elif doc[i].startswith('##'):
+            body.append('<div class="headingcontext">')
+            add(doc[i][2:].strip(), tag='h2')
+            i = add_empty_lines(i)
+            body.append('</div>')
+        elif doc[i].startswith('#'):
             body.append('<div class="headingcontext">')
             if not got_title:
-                got_title = True; title = doc[i][2:].strip()
+                got_title = True; title = doc[i][1:].strip()
                 add(title, tag='h1', css_class='title')
                 i = add_empty_lines(i)
-                if doc[i+1].startswith('## '):
-                    i += 1; subtitle = doc[i][3:].strip()
+                if doc[i+1].startswith('##') and doc[i+1][2:3] != '#':
+                    i += 1; subtitle = doc[i][2:].strip()
                     add(subtitle, tag='h2', css_class='subtitle')
                 else:
                     subtitle = None
@@ -497,16 +507,6 @@ def parse_gemini(doc: str, metadata: dict) -> tuple[str,str]:
             else:
                 add(doc[i][2:], tag='h1')
                 i = add_empty_lines(i)
-            body.append('</div>')
-        elif doc[i].startswith('## '):
-            body.append('<div class="headingcontext">')
-            add(doc[i][3:], tag='h2')
-            i = add_empty_lines(i)
-            body.append('</div>')
-        elif doc[i].startswith('### '):
-            body.append('<div class="headingcontext">')
-            add(doc[i][4:], tag='h3')
-            i = add_empty_lines(i)
             body.append('</div>')
         elif doc[i].startswith('>'):
             add(doc[i][1:], tag='blockquote')
