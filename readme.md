@@ -14,7 +14,7 @@ gemdoc are entirely my own fault.
 The easiest way to use gemdoc is to simply pass it a gemini url as its
 first (and only) command line argument, like this:
 
-    gemdoc gemini://gemini.circumlunar.space/docs/faq.gmi
+    gemdoc gemini://geminiprotocol.net/docs/faq.gmi
 
 This command would create a text/gemini+pdf polyglot named `faq.pdf`
 in the current working directory. To explicitly specify the filename for
