@@ -29,7 +29,7 @@ def err(msg: str):
 class GemdocClientException(Exception):
     pass
 
-def retrieve_url(url: str, max_redirects=10) -> \
+def retrieve_url(url: str, max_redirects=5) -> \
                                         tuple[str,str,Union[str,bytes]]:
     """
     Returns a tuple of type (url, content), where url is possibly
