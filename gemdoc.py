@@ -660,6 +660,10 @@ a.gopher > p {
 a.mailto > p {
     /* Styling for links to mailto: urls */
 }
+a.mailto > p::before {
+    content: '🖂︎';
+    color: rgb(10, 110, 130);
+}
 /* Note that these selectors work for any kind of url scheme. There is no
    need to define special rules for every scheme, though, since the default
    style defined above will be applied to all urls with schemes that aren't
