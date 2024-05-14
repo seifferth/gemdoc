@@ -476,7 +476,8 @@ def parse_gemini(doc: str, metadata: dict) -> tuple[str,str]:
                 got_title = True; title = doc[i][1:].strip()
                 add(title, tag='h1', css_class='title')
                 i = add_empty_lines(i)
-                if doc[i+1].startswith('##') and doc[i+1][2:3] != '#':
+                if i+1 < len(doc) and doc[i+1].startswith('##') \
+                                  and doc[i+1][2:3] != '#':
                     i += 1; subtitle = doc[i][2:].strip()
                     add(subtitle, tag='h2', css_class='subtitle')
                 else:
