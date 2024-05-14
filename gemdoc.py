@@ -424,21 +424,6 @@ def extract_gemini_part(doc: str) -> tuple[str,dict]:
     if doc.endswith('\n'): doc = doc[:-1]
     return doc, metadata
 
-def parse_magic_lines(doc: str) -> tuple[str,dict]:
-    metadata = dict(); body = list()
-    for line in doc.splitlines():
-        if line.startswith('%!GEMDOC'):
-            key, *value = line[8:].lstrip().split('=', maxsplit=1)
-            if not value: value.append('')
-            key, value = key.strip().lower(), value[0].strip()
-            if key == 'uri': key = 'url'
-            if key not in ['author', 'date', 'url', 'subject', 'keywords']:
-                raise GemdocParserException(f"Unsupported gemdoc key '{key}'")
-            metadata[key] = value
-        else:
-            body.append(line)
-    return '\n'.join(body), metadata
-
 def parse_gemini(doc: str, metadata: dict) -> tuple[str,str]:
     body = list(); got_title = False; preformatted = False
     _, site_host, *_ = urlparse(metadata.get('url', ''))
@@ -840,19 +825,12 @@ Options
                             text/gemini files from gemini servers. It also
                             comes in handy when one wants to debug input from
                             a remote source that cannot be converted to pdf.
-  -M K=V, --metadata=K=V    Set the metadata key K to value V. Valid keys
-                            are 'author', 'date', 'url', 'subject' and
-                            'keywords'. This option may be passed multiple
-                            times to set more than one key.
-                            For local input files, metadata may optionally
-                            also be set by including lines like the following
-                            one in the input document: '%!GEMDOC KEY=VALUE'.
-                            The supported keys are the same as available via
-                            the command line option. If a value is specified
-                            via both options, the one passed via the command
-                            line takes precedence. If neither are present and
-                            the input is already in polyglot format, existing
-                            pdf metadata will be preserved.
+  -M K=V, --metadata=K=V    Set the metadata key K to value V. Valid keys are
+                            'author', 'date', 'url', 'subject' and 'keywords'.
+                            This option may be passed multiple times to set
+                            more than one key. If the input is already in
+                            polyglot format, existing pdf metadata will be
+                            preserved.
   --css FILE                Use the specified css file to style the document.
                             This option may be passed multiple times to use
                             multiple stylesheets. If this option is supplied,
@@ -966,18 +944,7 @@ if __name__ == "__main__":
         err(f'Unable to read css file. {e}')
     if not stylesheets: css.append(CSS(string=_default_css))
 
-    if input_type == 'local':
-        doc, gemdoc_metadata = parse_magic_lines(doc)
-        if is_gemdoc_pdf(doc):
-            doc, pdf_metadata = extract_gemini_part(doc)
-        else:
-            pdf_metadata = dict()
-        for k, v in gemdoc_metadata.items():
-            if k not in metadata: metadata[k] = v
-        for k, v in pdf_metadata.items():
-            if k not in metadata: metadata[k] = v
-
-    elif input_type == 'remote':
+    if input_type == 'remote':
         if not o_flag:
             _, _, input_url_path, *_ = urlparse(args[0])
             output = os.path.basename(input_url_path.rstrip('/')) \
@@ -1007,16 +974,6 @@ if __name__ == "__main__":
                  f'was reported to be \'{mime_type}\'.')
             write_output(doc)
             exit(0)
-
-    # Escape occurrences of %!GEMDOC magic lines left in text/gemini files
-    # downloaded from remote sources. This ensures that these lines will not
-    # be processed if gemdoc is later invoked again on the output file (e. g.
-    # in order to change the pdf layout of the pdf part).
-    if '%!GEMDOC' in doc:
-        doc = doc.replace('%!GEMDOC', '%\u200b!GEMDOC')
-        warn('Warning: Occurrences of the \'%!GEMDOC\' keyword have been '
-             'escaped by inserting a zero width space after the first '
-             'character')
 
     gemini_filename = 'source.gmi'
     if 'url' in metadata:
