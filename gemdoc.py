@@ -459,7 +459,10 @@ def parse_gemini(doc: str, metadata: dict) -> tuple[str,str]:
         elif preformatted:
             add(doc[i], tag=None)
         elif doc[i].startswith('```'):
-            body.append('<pre>'); preformatted = True
+            if i+1 < len(doc) and doc[i+1].startswith('```'):
+                pass
+            else:
+                body.append('<pre>'); preformatted = True
         elif doc[i].startswith('###'):
             body.append('<div class="headingcontext">')
             add(doc[i][3:].strip(), tag='h3')
