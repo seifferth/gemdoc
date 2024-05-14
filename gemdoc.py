@@ -944,7 +944,13 @@ if __name__ == "__main__":
         err(f'Unable to read css file. {e}')
     if not stylesheets: css.append(CSS(string=_default_css))
 
-    if input_type == 'remote':
+    if input_type == 'local':
+        if is_gemdoc_pdf(doc):
+            doc, pdf_metadata = extract_gemini_part(doc)
+            for k, v in pdf_metadata.items():
+                if k not in metadata: metadata[k] = v
+
+    elif input_type == 'remote':
         if not o_flag:
             _, _, input_url_path, *_ = urlparse(args[0])
             output = os.path.basename(input_url_path.rstrip('/')) \
