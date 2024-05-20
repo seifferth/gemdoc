@@ -275,7 +275,7 @@ class GemdocPDF():
         self._objects = dict()
         self._trailer = GemdocPDFTrailer(b'')
         while binary:
-            if re.match(rb'[\r\n]xref', binary):
+            if re.match(rb'[\r\n]*xref', binary):
                 s, e = binary.find(b'trailer'), binary.find(b'startxref')
                 if 0 <= s < e-1:
                     s += len(b'trailer')
