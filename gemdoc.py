@@ -460,7 +460,7 @@ def parse_gemini(doc: str, metadata: dict) -> tuple[str,str]:
             add(doc[i], tag=None)
         elif doc[i].startswith('```'):
             if i+1 < len(doc) and doc[i+1].startswith('```'):
-                pass
+                i += 1
             else:
                 body.append('<pre>'); preformatted = True
         elif doc[i].startswith('###'):
