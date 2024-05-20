@@ -211,13 +211,13 @@ class GemdocPDFObject():
         if self._stream != None:
             stream = self._stream
             if flateencode: stream = zlib.compress(stream)
-            stream = base64.a85encode(stream)+b'~>'
+            stream = base64.a85encode(stream)+b'~>'     # TODO: breaks images
             # Space-stuff stream if it could be mistaken for a
             # gemini preformatting toggle off line
             if stream.startswith(b'```'): stream = b' '+stream
             binary = (b'\rstream\n' + stream + b'\rendstream\r')
             if flateencode: flist.insert(0, b'/FlateDecode')
-            flist.insert(0, b'/ASCII85Decode')
+            flist.insert(0, b'/ASCII85Decode')          # TODO: breaks images
         else:
             binary = self._contents.replace(b'\n', b'\r')
         if flist:
