@@ -38,7 +38,9 @@ def retrieve_url(url: str, max_redirects=5) -> \
     """
     if max_redirects <= 0:
         raise GemdocClientException('Maximum number of redirects exceeded')
-    scheme, host, path, *_ = urlparse(url); port = 1965
+    scheme, host, path, params, query, _fragment = urlparse(url); port = 1965
+    url = f'{scheme}://{host}{path or "/"}'\
+          f'{";"+params if params else ""}{"?"+query if query else ""}'
     content = list()
     if scheme != 'gemini':
         raise GemdocClientException(f'Unsupported url scheme {scheme}')
