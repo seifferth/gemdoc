@@ -38,7 +38,9 @@ def retrieve_url(url: str, max_redirects=5) -> \
     """
     if max_redirects <= 0:
         raise GemdocClientException('Maximum number of redirects exceeded')
+    url = url.replace('\r\n', '%0A').replace('\n', '%0A')
     scheme, host, path, params, query, _fragment = urlparse(url); port = 1965
+    query = query.replace(' ', '%20')
     url = f'{scheme}://{host}{path or "/"}'\
           f'{";"+params if params else ""}{"?"+query if query else ""}'
     content = list()
