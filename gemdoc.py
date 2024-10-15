@@ -979,7 +979,7 @@ if __name__ == "__main__":
             write_output(doc)
             exit(0)
         elif mime_type.lower() in ['text/gemini', 'application/pdf'] \
-                               and doc.lstrip().startswith('%PDF-'):
+                               and doc.lstrip().startswith(b'%PDF-'):
             write_output(doc)
             exit(0)
         elif mime_type.lower() == 'text/gemini':
