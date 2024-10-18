@@ -978,8 +978,10 @@ if __name__ == "__main__":
         if no_convert:
             write_output(doc)
             exit(0)
-        elif mime_type.lower() in ['text/gemini', 'application/pdf'] \
-                               and doc.lstrip().startswith(b'%PDF-'):
+        elif mime_type.lower() == 'text/gemini' \
+                        and doc.lstrip().startswith('%PDF-') \
+          or mime_type.lower() == 'application/pdf' \
+                        and doc.lstrip().startswith(b'%PDF-'):
             write_output(doc)
             exit(0)
         elif mime_type.lower() == 'text/gemini':
